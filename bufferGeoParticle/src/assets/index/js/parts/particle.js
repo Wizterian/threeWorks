@@ -8,12 +8,16 @@ import {
   PlaneGeometry,
   // MeshBasicMaterial,
   MeshStandardMaterial,
+  Points,
+  PointsMaterial,
+  BufferGeometry,
+  Float32BufferAttribute,
   AmbientLight,
   DirectionalLight,
   Mesh,
   DoubleSide,
   Clock,
-  Vector3
+  Vector3,
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
@@ -54,8 +58,8 @@ class ThreeScene {
 
     if (!this.isInitialized) {
       this.camera = new PerspectiveCamera(
-        0,
-        0,
+        this.cameraParam.fov,
+        this.width / this.height,
         this.cameraParam.near,
         this.cameraParam.far
       )
@@ -76,14 +80,13 @@ class ThreeScene {
     }
 
     if('OrthographicCamera' === this.camera.type) {
-      console.log('this.camera.type: ', this.camera.type);
       this.camera.left = this.width / - 2
       this.camera.right = this.width / 2
       this.camera.top = this.height / 2
       this.camera.bottom = this.height / - 2
     }
 
-    this.camera.fov = Math.atan(this.height / 2 / this.cameraParam.z) * 2 * (180 / Math.PI)
+    // this.camera.fov = Math.atan(this.height / 2 / this.cameraParam.z) * 2 * (180 / Math.PI)
     this.camera.aspect = this.width / this.height
     this.camera.updateProjectionMatrix()
 
@@ -91,7 +94,6 @@ class ThreeScene {
   }
 
   _setControl() {
-    // if(!this.camera) return
     this.orbitcontrols = new OrbitControls(
       this.camera,
       this.renderer.domElement
@@ -100,7 +102,7 @@ class ThreeScene {
   }
 
   _setRenderer() {
-    this.renderer = new WebGLRenderer({ 
+    this.renderer = new WebGLRenderer({
       alpha: true,
       antialias: true
     })
@@ -155,11 +157,73 @@ class MeshObject {
   }
 }
 
+class ParticleBufferGeo {
+  constructor(threeScene) {
+    this.threeScene = threeScene
+    this.clock = new Clock()
+  }
+
+  init() {
+    const SIZE = 100; // 範囲
+    const LENGTH = 1000; // 個数
+    const vertices = [];
+    for (let i = 0; i < LENGTH; i++) {
+      const x = SIZE * (Math.random() - 0.5);
+      const y = SIZE * (Math.random() - 0.5);
+      const z = SIZE * (Math.random() - 0.5);
+      vertices.push(x, y, z);
+    }
+
+    const geometry = new BufferGeometry();
+    // 透明度、サイズなども追加する
+    geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
+
+    // 画像に変えられるようにする
+    const material = new PointsMaterial({
+      size: 3,
+      color: 0xffffff,
+    });
+
+    const mesh = new Points(geometry, material);
+    this.threeScene.scene.add(mesh);
+
+
+    // const meshScale = 50
+    // const geometry = new BoxGeometry( 1, 1, 1 )
+    // // const geometry = new PlaneGeometry(1, 1, 100, 100)
+    // const material = new MeshStandardMaterial({
+    //   side: DoubleSide,
+    //   color: 0xff0000
+    // })
+    // this.cube = new Mesh( geometry, material )
+    // this.cube.scale.set(meshScale, meshScale, meshScale)
+
+    // const ambientLight = new AmbientLight(0xffffff, 1)
+    // const directionalLight = new DirectionalLight(0xff00ff, 1)
+    // directionalLight.position.set(0, 1, 1)
+
+    // this.threeScene.scene.add(
+    //   this.cube,
+    //   ambientLight,
+    //   directionalLight
+    // )
+  }
+
+  animate() {
+    const delta = this.clock.getDelta()
+
+    this.cube.rotation.x += delta
+    this.cube.rotation.y += delta
+  }
+}
+
 (() => {
   const threeScene = new ThreeScene()
   threeScene.init()
-  const meshObject = new MeshObject(threeScene)
-  meshObject.init()
+  // const meshObject = new MeshObject(threeScene)
+  // meshObject.init()
+  const particleGeo = new ParticleBufferGeo(threeScene)
+  particleGeo.init()
 
   window.addEventListener("resize", () => {
     threeScene.resize()
