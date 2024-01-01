@@ -1,0 +1,58 @@
+/*!**********************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]!./node_modules/sass-loader/dist/cjs.js??ruleSet[1].rules[0].use[2]!./src/assets/index/css/index.scss ***!
+  \**********************************************************************************************************************************************************************************/
+:root {
+  --devicePxW: 1024;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --devicePxW: 375;
+  }
+}
+.webGL {
+  width: 100%;
+  height: 100%;
+}
+
+canvas {
+  z-index: -1;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.contents {
+  width: 100%;
+}
+
+h1 {
+  font-size: min(78 / var(--devicePxW) * 100vw, 78 * 1px);
+}
+
+h2 {
+  font-size: min(64 / var(--devicePxW) * 100vw, 64 * 1px);
+}
+
+h3 {
+  font-size: min(28 / var(--devicePxW) * 100vw, 28 * 1px);
+}
+
+h4 {
+  font-size: min(14 / var(--devicePxW) * 100vw, 14 * 1px);
+}
+
+@media (max-width: 767px) {
+  h1 {
+    font-size: calc(56 / var(--devicePxW) * 100vw);
+  }
+  h2 {
+    font-size: calc(28 / var(--devicePxW) * 100vw);
+  }
+  h3 {
+    font-size: calc(21 / var(--devicePxW) * 100vw);
+  }
+  h4 {
+    font-size: calc(14 / var(--devicePxW) * 100vw);
+  }
+}
