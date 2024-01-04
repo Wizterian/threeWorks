@@ -1,3 +1,4 @@
+// attribute vec3 position;
 attribute vec3 color;
 attribute float opacity;
 attribute float size;

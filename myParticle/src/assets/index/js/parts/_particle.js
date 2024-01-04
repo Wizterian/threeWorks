@@ -19,13 +19,12 @@ import {
   ShaderMaterial,
   Texture,
   AdditiveBlending,
-  Points,
-  PerspectiveCamera
+  Points
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import vertexShader from './points.vs?raw'
 import fragmentShader from './points.fs?raw'
-import { getRandomInt, getRad, getDeg, getSpherePos, randomRange } from '../../../common/js/libs/Utils'
+import { getRandomInt, getRad, getDeg, getSpherePos } from '../../../common/js/libs/Utils'
 
 class ThreeScene {
   constructor() {
@@ -38,7 +37,7 @@ class ThreeScene {
       lookAt: new Vector3(0, 0, 0),
       x: 0,
       y: 0,
-      z: 300
+      z: 100
     }
     this.scene = null
     this.camera = null
@@ -47,9 +46,9 @@ class ThreeScene {
   }
   init () {
     this._setScene()
-    this._setRenderer()
     this._setCamera()
     this._setClock()
+    this._setRenderer()
     this._setControl()
 
     this.isInitialized = true
@@ -62,15 +61,20 @@ class ThreeScene {
     this.height = window.innerHeight
 
     if (!this.isInitialized) {
-      this.camera = new PerspectiveCamera(70, this.width / this.height, .1, 1000)
       // this.camera = new OrthographicCamera(
-      //   this.width / - 2,
-      //   this.width / 2,
-      //   this.height / 2,
-      //   this.height / - 2,
-      //   0.1,
-      //   1000
+      //   0,
+      //   0,
+      //   this.cameraParam.near,
+      //   this.cameraParam.far
       // )
+      this.camera = new OrthographicCamera(
+        this.width / - 2,
+        this.width / 2,
+        this.height / 2,
+        this.height / - 2,
+        0.1,
+        1000
+      )
       this.camera.position.set(
         this.cameraParam.x,
         this.cameraParam.y,
@@ -95,16 +99,7 @@ class ThreeScene {
   }
 
   _setClock() {
-    this.clock = new Clock();
-  }
-
-  _setControl() {
-    // if(!this.camera) return
-    this.orbitcontrols = new OrbitControls(
-      this.camera,
-      this.renderer.domElement
-    )
-    this.orbitcontrols.enableDamping = true
+    this.clock = new Clock()
   }
 
   _setRenderer() {
@@ -118,6 +113,15 @@ class ThreeScene {
     document.querySelector('.webgl').appendChild(this.renderer.domElement )
   }
 
+  _setControl() {
+    // if(!this.camera) return
+    this.orbitcontrols = new OrbitControls(
+      this.camera,
+      this.renderer.domElement
+    )
+    this.orbitcontrols.enableDamping = true
+  }
+
   resize() {
     this._setCamera()
   }
@@ -129,23 +133,20 @@ class ThreeScene {
 
 class ParticleProps {
   constructor() {
-    this.size = 0
-    // this.time = 0
-    this.opacity = 0
-    this.isActive = false
-    this.velocity = new Vector3() // 速度・距離
-    // this.acceleration = new Vector3() // 加速度
-    // this.flg = false
-    this.color = new Color()
+    this.size = 0;
+    this.time = 0;
+    this.opacity = 0;
+    this.isActive = false;
+    this.velocity = new Vector3(); // 速度・距離
+    this.acceleration = new Vector3(); // 加速度
+    this.flg = false
   }
-  init(prop) {
-    this.velocity = prop.velocity.clone() // 独立したランダム初期値
-    // this.anchor = vector.clone()
-    // this.acceleration.set(0, 0, 0)
-    // this.time = 0
-    this.size = prop.size
-    this.opacity = prop.opacity
-    this.color = prop.color
+  init(vector) {
+    this.velocity = vector.clone(); // 独立したランダム初期値
+    // this.anchor = vector.clone();
+    this.acceleration.set(0, 0, 0);
+    this.time = 0;
+    this.opacity = 0;
   }
   activate() {
     this.isActive = true;
@@ -176,7 +177,7 @@ class ParticleBufferGeo {
       vertexShader: param.vertexShader,
       fragmentShader: param.fragmentShader,
       uniforms: {
-        // uColor: { value: new Color(0xffff00) },
+        uColor: { value: new Color(0xff0000) },
         uTexture: { value: param.texture }
       },
     })
@@ -202,40 +203,30 @@ class ParticleBufferGeo {
 class Particles {
   constructor(threeScene) {
     this.threeScene = threeScene
-    this.pNum = 500
+    this.pNum = 10
     this.pPropsArr = [] // props for each particle
     this.positions = new Float32Array(this.pNum * 3) // for BufferGeometry
-    this.colors = new Float32Array(this.pNum * 3)
+    // this.colors = new Float32Array(this.pNum * 3)
     this.opacities = new Float32Array(this.pNum)
     this.sizes = new Float32Array(this.pNum)
     // this.gravity = new Vector3(0, 0.1, 0)
-    // this.clock = new Clock()
     // this.lastUpdatedTime = Date.now()
     this.pGeo = new ParticleBufferGeo()
   }
   init(images) {
     const texture = new Texture(images[0])
-    // BufferGeometryで使う各particleを用意
-    // activateで細かい設定を行う
+    // BufferGeometryで使う各particleの属性を用意
     for (var i = 0; i < this.pNum; i++) {
       // パーティクル固有の値生成
       const pProps = new ParticleProps() // 個々の属性管理
       const r = getRandomInt // 関数のエイリアス
-      const color = new Color('hsl('+r(0, 45) +','+r(60, 90)+'%, 75%)')
-      const range = Math.random()
-      const distance = 200
-      const prop = {
-        size: Math.pow(5 - range, 2) * randomRange(.5, 4),
-        opacity: 0.2,
-        color,
-        // isActive: false,
-        velocity: new Vector3(
-          Math.random() * distance - (distance / 2),
-          Math.random() * distance - (distance / 2),
-          Math.random() * distance - (distance / 2)
-        )
-      }
-      pProps.init(prop)
+      var color = new Color('hsl('+r(0, 45) +','+r(60, 90)+'%, 50%)')
+      // pProps.init(new Vector3(getRandomInt(-100, 100), 0, 0))
+      pProps.init(new Vector3(
+        getRandomInt(-3, 3),
+        getRandomInt(-3, 3),
+        getRandomInt(-3, 3))
+      )
       this.pPropsArr.push(pProps)
 
       // BufferGeometry用の配列に値を格納
@@ -316,8 +307,9 @@ class Particles {
         // powで2乗で顕著化
         // 12はサイズ
         // 3は半径
-        pProp.size = Math.pow(12 - range, 2) * getRandomInt(1, 3)
+
         // パーティクルをカウント
+        pProp.size = Math.pow(12 - range, 2) * getRandomInt(1, 3)
         pCount++
         if (pCount >= 6) break // 6づつ活性化
       }
