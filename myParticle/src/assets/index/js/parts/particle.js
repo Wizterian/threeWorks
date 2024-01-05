@@ -134,18 +134,16 @@ class ParticleProps {
     this.opacity = 0
     this.isActive = false
     this.velocity = new Vector3() // 速度・距離
-    // this.acceleration = new Vector3() // 加速度
+    this.acceleration = new Vector3() // 加速度
     // this.flg = false
-    this.color = new Color()
   }
   init(prop) {
-    this.velocity = prop.velocity.clone() // 独立したランダム初期値
+    this.velocity = prop.clone() // 独立したランダム初期値
     // this.anchor = vector.clone()
     // this.acceleration.set(0, 0, 0)
     // this.time = 0
-    this.size = prop.size
-    this.opacity = prop.opacity
-    this.color = prop.color
+    // this.size = prop.size
+    // this.opacity = prop.opacity
   }
   activate() {
     this.isActive = true;
@@ -202,7 +200,7 @@ class ParticleBufferGeo {
 class Particles {
   constructor(threeScene) {
     this.threeScene = threeScene
-    this.pNum = 500
+    this.pNum = 1000
     this.pPropsArr = [] // props for each particle
     this.positions = new Float32Array(this.pNum * 3) // for BufferGeometry
     this.colors = new Float32Array(this.pNum * 3)
@@ -216,29 +214,17 @@ class Particles {
   init(images) {
     const texture = new Texture(images[0])
     // BufferGeometryで使う各particleを用意
-    // activateで細かい設定を行う
     for (var i = 0; i < this.pNum; i++) {
-      // パーティクル固有の値生成
-      const pProps = new ParticleProps() // 個々の属性管理
-      const r = getRandomInt // 関数のエイリアス
+      // パーティクル固有の属性生成
+      const pProps = new ParticleProps() // 属性管理インスタンス
+      const r = getRandomInt // 関数エイリアス
       const color = new Color('hsl('+r(0, 45) +','+r(60, 90)+'%, 75%)')
-      const range = Math.random()
-      const distance = 200
-      const prop = {
-        size: Math.pow(5 - range, 2) * randomRange(.5, 4),
-        opacity: 0.2,
-        color,
-        // isActive: false,
-        velocity: new Vector3(
-          Math.random() * distance - (distance / 2),
-          Math.random() * distance - (distance / 2),
-          Math.random() * distance - (distance / 2)
-        )
-      }
-      pProps.init(prop)
+      pProps.init(new Vector3(0, 0, 0))
+
+      // 属性管理インスタンス配列に追加
       this.pPropsArr.push(pProps)
 
-      // BufferGeometry用の配列に値を格納
+      // BufferGeometry用配列を初期化
       this.positions[i * 3 + 0] = pProps.velocity.x
       this.positions[i * 3 + 1] = pProps.velocity.y
       this.positions[i * 3 + 2] = pProps.velocity.z
@@ -263,18 +249,11 @@ class Particles {
   update() {
     for (var i = 0; i < this.pPropsArr.length; i++) {
       const pProp = this.pPropsArr[i]
-      pProp.time++ // = pProp.time + this.clock.getDelta()
-      // console.log('pProp.time: ', pProp.time);
-      pProp.applyForce(this.gravity)
+      // pProp.time++ // = pProp.time + this.clock.getDelta()
+      // pProp.applyForce(this.gravity)
       pProp.updateVelocity()
       // if(pProp.isActive) {
       // }
-      if(!this.flg) {
-        // console.log(this.pPropsArr[i])
-        // const delta = this.clock.getDelta()
-        // console.log('delta: ', delta);
-        if(i > 0) this.flg = !this.flg
-      };
 
       // 全体の属性を更新、shader用
       this.positions[i * 3 + 0] = pProp.velocity.x
@@ -286,12 +265,12 @@ class Particles {
       this.pGeo.update()
     }
   }
-  // パーティクルが非活動中なら活動させる
+  // パーティクルが非活性なら初期値の設定・生成する
   activate() {
     let pCount = 0
     const currentTime = Date.now()
     // 10ミリ秒ごとに6つづつ活性化
-    if(currentTime - this.lastUpdatedTime > 10) {
+    // if(currentTime - this.lastUpdatedTime > 10) {
       for (var i = 0; i < this.pPropsArr.length; i++) {
         const pProp = this.pPropsArr[i]
 
@@ -301,28 +280,32 @@ class Particles {
         // 小さい入力値に対しては大きな変化、大きい入力値に対しては小さな変化
         // 中心に偏差
         const radA = getRad(getRandomInt(0, 360))
+        // const radA = getRad(Math.log(getRandomInt(0, 256)) / Math.log(256) * 360)
         const radB = getRad(getRandomInt(0, 360))
-        const range = Math.random() * 2 // 円周上のランダムな位置
+        const range = Math.random() * 2 // 球状のランダムな位置
+        // const range = (1 - Math.log(getRandomInt(32, 256)) / Math.log(256)) * 12; // 円周上のランダムな位置
         const force = getSpherePos(radA, radB, range)
 
         // 初期位置を生成（円周上のランダムな位置・サイズ・透明度）
         const vector = new Vector3()
-        vector.add(this.pGeo.velocity)
+        vector.add(this.pGeo.velocity) // bufGeo位置
         pProp.activate()
-        pProp.init(vector)
+        // pProp.init(vector)
+        pProp.init(force.multiplyScalar(50))
         pProp.applyForce(force)
         pProp.opacity = 0.2
         // 中心から遠いほど小さい値
         // powで2乗で顕著化
-        // 12はサイズ
+        // 7はサイズ
         // 3は半径
-        pProp.size = Math.pow(12 - range, 2) * getRandomInt(1, 3)
-        // パーティクルをカウント
-        pCount++
-        if (pCount >= 6) break // 6づつ活性化
+        // pProp.size = Math.pow(7 - range, 2) * getRandomInt(1, 3)
+        pProp.size = Math.pow(7 - range, 2) * getRandomInt(1, 3)
+
+        // pCount++
+        // if (pCount >= 5) break // 6づつ活性化
       }
       this.lastUpdatedTime = Date.now()
-    }
+    // }
   }
 }
 
@@ -355,6 +338,8 @@ class loadImage {
       // meshObject.init()
       const particles = new Particles(threeScene)
       particles.init(images)
+      particles.activate()
+      particles.update()
 
 
       window.addEventListener("resize", () => {
