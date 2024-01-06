@@ -1,0 +1,46 @@
+// @import "./sub/_sub.scss";
+@import "../../common/mixin/mixin.scss";
+
+.webGL {
+  width: 100%;
+  height: 100%;
+}
+canvas {
+  z-index: -1;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.contents {
+  width: 100%;
+  color: #fff;
+}
+
+h1 {
+  font-size: vwMin(78);
+}
+h2 {
+  font-size: vwMin(64);
+}
+h3 {
+  font-size: vwMin(28);
+}
+h4 {
+  font-size: vwMin(14);
+}
+
+@media (max-width: 767px) {
+  h1 {
+    font-size: vw(56);
+  }
+  h2 {
+    font-size: vw(28);
+  }
+  h3 {
+    font-size: vw(21);
+  }
+  h4 {
+    font-size: vw(14);
+  }
+}

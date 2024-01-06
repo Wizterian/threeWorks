@@ -1,0 +1,72 @@
+@use "sass:math";
+
+:root {--devicePxW: 1024;}
+
+@media (max-width: 767px) {
+  :root {--devicePxW: 375;}
+}
+
+@function vw($pxW) {
+  @return calc(#{$pxW} / var(--devicePxW) * 100vw);
+}
+
+@function vwMin($pxW) {
+  @return min(calc(#{$pxW} / var(--devicePxW) * 100vw), #{$pxW} * 1px);
+}
+
+@mixin setAbsCenter() {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin setAbsCenterX() {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@mixin hideText() {
+  white-space: nowrap;
+  text-indent: 100%;
+  overflow: hidden;
+}
+
+@mixin setDefaultTransition($t:0.3) {
+  transition: all #{$t}s ease;
+}
+
+@mixin titleBar() {
+  position: relative;
+  display: block;
+  height: vwMin(2);
+  margin-top: vwMin(3);
+  background:rgb(248, 255, 234);
+
+  .rightEnd,
+  .leftEnd {
+    content: "";
+    display: block;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    opacity: 1;
+  }
+
+  .rightEnd {
+    right: 0;
+    width: vwMin(70);
+    background: url("/imgs/common/title_bar_right.png") right center / cover no-repeat, #000;
+  }
+
+  .leftEnd {
+    width: vwMin(100);
+    left: 0;
+    background: url("/imgs/common/title_bar_left.png") left center / cover no-repeat, #000;
+  }
+}
+
+@function easeOutExpo() {
+  @return cubic-bezier(0.16, 1, 0.3, 1);
+}
