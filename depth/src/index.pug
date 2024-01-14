@@ -1,0 +1,25 @@
+extends /layouts/_layout
+
+block pageState
+  -
+    var pageState = {
+      updateTimeStamp: globalState.updateTimeStamp,
+      title: globalState.title,
+      description: globalState.description
+    };
+    
+block page_stylesheet
+  link(rel="stylesheet", href=`./assets/index/css/index.css?${updateTimeStamp}`)
+//-   link(rel="stylesheet", media="screen and (min-width:737px)", href=globalState.websiteDir + "assets/index/css/pc.css")
+//-   link(rel="stylesheet", media="screen and (max-width:736px)", href=globalState.websiteDir + "assets/index/css/sp.css")
+
+block main
+    .webgl
+    //- .contents
+      h1 Hello World!
+      h2 This is my template!tet
+      h3 Sleepy head
+      #stageSlider
+
+block page_script_bottom
+    script(src="./assets/index/js/main.js")
