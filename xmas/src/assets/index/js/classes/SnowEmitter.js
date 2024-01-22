@@ -57,12 +57,10 @@ class SnowProps extends Object3D {
 export default class SnowEmitter {
   constructor(three) {
     this.three = three
-    this.snowNum = 10000
+    this.snowNum = 1000
     this.snowPropsArray = []
     this.snowInstance = null
-    this.wldRange = this.three.worldRange
-    this.width = this.three.width
-    this.height = this.three.height
+    this.viewWidth = this.three.viewWidth
     this.snowColor  = 0xffffff
     this.matrix = new Matrix4() // meshの行列を受け渡し用
   }
@@ -72,12 +70,13 @@ export default class SnowEmitter {
     // テクスチャーを読み込み
 
     // ジオメトリ生成
-    const snowPlane = new PlaneGeometry(1, 1)
+    const snowPlane = new PlaneGeometry(10, 10)
     // マテリアル生成
     const snowMat = new MeshBasicMaterial({
       color: this.snowColor,
       transparent: true,
-      side: DoubleSide
+      side: DoubleSide,
+      // uTex: {value: new TextureLoader().load(images[2].src)},
     })
     // インスタンスメッシュ生成（一旦bufferGeometryのようなイメージ）
     this.snowInstance = new InstancedMesh(
@@ -91,11 +90,12 @@ export default class SnowEmitter {
       const snowProps = new SnowProps()
       // パーティクル属性生成（position、color etc.）
       snowProps.position.set(
-        Math.random() * this.width - this.width / 2,
-        // Math.random() * this.height * 2,
-        Math.random() * this.wldRange * 20,
-        Math.random() * this.wldRange,
+        Math.random() * this.viewWidth - this.viewWidth / 2,
+        Math.random() * this.viewWidth - this.viewWidth / 2,
+        Math.random() * this.viewWidth,
       )
+      // snowProps.position.set(0, 0, 0)
+      snowProps.rotation.set(0, 0, Math.random() * Math.PI)
       // 行列設定
       // this.snowInstance.setColorAt(i, new Color(snowProps.color)); // color instance
 
@@ -111,41 +111,32 @@ export default class SnowEmitter {
       // もしパーティクル[i]がアクティブなら
       if(this.snowPropsArray[i].isActive) {
         const snowProps = this.snowPropsArray[i]
-        // if(i === 0) console.log(snowProps);
+
         // パーティクル[i]を下に落とす（updateVelocity）
         snowProps.position.y += snowProps.velocityY;
         // パーティクル[i]を回転させる
+        snowProps.rotation.x += (snowProps.velocityY * .1);
+        snowProps.rotation.y += (snowProps.velocityY * .1);
+        snowProps.rotation.z += (snowProps.velocityY * .1);
 
-        // もしパーティクル[i]が落ちきったら
-        if (snowProps.position.y < -this.wldRange) {
+        // もしパーティクル[i]が落ちきったら（active check関数化）
+        if (snowProps.position.y < -this.viewWidth / 2) {
           // 座標をリセット（yを上に戻す、x、zをランダムに）
           // snowProps.init()
           snowProps.position.set(
-            Math.random() * this.width - this.width / 2,
-            this.wldRange * 10,
-            Math.random() * this.wldRange,
+            Math.random() * this.viewWidth - this.viewWidth / 2,
+            this.viewWidth - this.viewWidth / 2,
+            Math.random() * this.viewWidth / 10,
           )
-        } else {
-          snowProps.position.y += snowProps.velocityY;
+          snowProps.rotation.set(0, 0, Math.random() * Math.PI)
         }
 
         // InstancedMeshのmatrixを更新
         snowProps.updateMatrix()
         // if(i===0) console.log(snowProps.matrix);
         this.snowInstance.setMatrixAt(i, snowProps.matrix)
-
-        // 行列変換
-        // this.matrix.setPosition(
-        //   snowProps.position.x,
-        //   snowProps.position.y,
-        //   snowProps.position.z,
-        // )
-        // this.snowInstance.setMatrixAt(i, this.matrix)
       }
       this.snowInstance.instanceMatrix.needsUpdate = true;
     }
-    // メッシュのneedsUpdate = true;はinstancedMeshのところだとおもう
-    // renderer.render(scene, camera);
-    // App.jsのupdateで呼び出す
   }
 }

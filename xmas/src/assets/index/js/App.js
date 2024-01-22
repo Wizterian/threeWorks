@@ -10,25 +10,25 @@ import LoadImage from './utils/LoadImage.js';
 import TreeImage from './classes/TreeImage.js';
 import SnowEmitter from './classes/SnowEmitter.js';
 // import Smoke from './classes/Smoke.js';
-
-
+import Stats from 'three/examples/jsm/libs/stats.module';
 export default class ThreeScene {
   constructor() {
     this.width = window.innerWidth
     this.height = window.innerHeight
-    this.worldRange = 100
+    this.viewWidth = 1280
     this.cameraParam = {
       fov: 70,
       near: 0.1,
-      far: this.worldRange * 10,
+      far: this.viewWidth * 1,//this.worldRange * 10,
       lookAt: new Vector3(0, 0, 0),
       x: 0,
       y: 0,
-      z: 10//this.worldRange
+      z: this.viewWidth * 1,//this.worldRange / 10
     }
     this.scene = null
     this.camera = null
     this.renderer = null
+    this.stats = null
     this.isInitialized = false
   }
 
@@ -37,9 +37,14 @@ export default class ThreeScene {
     this._setRenderer()
     this._setCamera()
     this._setControl()
+    this._setStats()
     this.isInitialized = true
   }
-
+  _setStats() {
+    this.stats = new Stats();
+    this.stats.showPanel(0);
+    document.body.appendChild(this.stats.dom);
+  }
   _setScene() {
     this.scene = new Scene()
   }
@@ -104,6 +109,8 @@ export default class ThreeScene {
   }
 
   animate() {
+    this.stats.begin();
+    this.stats.end();
     this.renderer.render(this.scene, this.camera)
   }
 }
@@ -114,7 +121,8 @@ export default class ThreeScene {
   loadImages
     .init([
       "/assets/index/img/tree.png",
-      "/assets/index/img/tree_mask.png"
+      "/assets/index/img/tree_mask.png",
+      "/assets/index/img/particle.png",
     ])
     .then(images => init(images))
   const init = images => {
@@ -123,7 +131,7 @@ export default class ThreeScene {
     const treeImage = new TreeImage(threeScene)
     // treeImage.init(images)
     const snowEmitter = new SnowEmitter(threeScene)
-    snowEmitter.init()
+    snowEmitter.init(images)
     // const smoke = new Smoke(threeScene)
     // smoke.init()
 
