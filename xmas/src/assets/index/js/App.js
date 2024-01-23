@@ -19,11 +19,11 @@ export default class ThreeScene {
     this.cameraParam = {
       fov: 70,
       near: 0.1,
-      far: this.viewWidth * 1,//this.worldRange * 10,
+      far: this.viewWidth * 2,
       lookAt: new Vector3(0, 0, 0),
       x: 0,
       y: 0,
-      z: this.viewWidth * 1,//this.worldRange / 10
+      z: this.viewWidth * 1,
     }
     this.scene = null
     this.camera = null

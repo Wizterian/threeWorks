@@ -21,7 +21,6 @@ import {
   // Vector2,
   DoubleSide,
   InstancedMesh,
-  Matrix4,
   Euler,
 } from 'three'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -33,8 +32,9 @@ class SnowProps extends Object3D {
   constructor() {
     super();
     this.sclRange = 100
-    this.rotRange = 360 * (180 / Math.PI)
-    this.velocityY = -0.1 * 2
+    // this.rotRange = 360 * (180 / Math.PI)
+    this.rotSpeed = Math.random() * 0.01 + 0.01
+    this.posSpeed = (Math.random() * 0.2 + .1) * -1
     this.opacity = Math.random() * .5 + .5;
     this.color ='0xffffff' // new Color(0xffffff)
     this.isActive = true;
@@ -45,7 +45,7 @@ class SnowProps extends Object3D {
   deactivate() {
     this.isActive = false;
   }
-  updateVelocity(vel) {
+  update(vel) {
     // 行列の変換はupdateMatrix関数があるので不要
     // obj3d.position.add(vel)
     // obj3d.updteMatrix()
@@ -62,31 +62,30 @@ export default class SnowEmitter {
     this.snowInstance = null
     this.viewWidth = this.three.viewWidth
     this.snowColor  = 0xffffff
-    this.matrix = new Matrix4() // meshの行列を受け渡し用
   }
   // 生成 指定数分生成しsceneにadd
   init() {
     // パーティクルインスタンス生成
     // テクスチャーを読み込み
 
-    // ジオメトリ生成
+    // ジオメトリ
     const snowPlane = new PlaneGeometry(10, 10)
-    // マテリアル生成
+    // マテリアル
     const snowMat = new MeshBasicMaterial({
       color: this.snowColor,
       transparent: true,
       side: DoubleSide,
       // uTex: {value: new TextureLoader().load(images[2].src)},
     })
-    // インスタンスメッシュ生成（一旦bufferGeometryのようなイメージ）
+    // インスタンスメッシュ（bufferGeometryのようなイメージ）
     this.snowInstance = new InstancedMesh(
       snowPlane,
       snowMat,
       this.snowNum
     )
-    // パーティクル属性管理配列を生成
+    // パーティクル属性管理配列
     for (let i = 0; i < this.snowNum; i++) {
-      // パーティクル属性管理インスタンス生成
+      // パーティクル属性管理インスタンス
       const snowProps = new SnowProps()
       // パーティクル属性生成（position、color etc.）
       snowProps.position.set(
@@ -95,8 +94,12 @@ export default class SnowEmitter {
         Math.random() * this.viewWidth,
       )
       // snowProps.position.set(0, 0, 0)
-      snowProps.rotation.set(0, 0, Math.random() * Math.PI)
-      // 行列設定
+      snowProps.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+      )
+      // 行列設定・設定
       // this.snowInstance.setColorAt(i, new Color(snowProps.color)); // color instance
 
       // 属性管理配列に追加
@@ -106,36 +109,35 @@ export default class SnowEmitter {
     this.three.scene.add(this.snowInstance)
   }
   animate() {
-    // パーティクルの数
     for (let i = 0; i < this.snowNum; i++) {
       // もしパーティクル[i]がアクティブなら
       if(this.snowPropsArray[i].isActive) {
+
+        // パーティクル[i]を動かす（updateでまとめる）
         const snowProps = this.snowPropsArray[i]
+        snowProps.position.y += snowProps.posSpeed;
+        snowProps.rotation.x += (snowProps.rotSpeed);
+        snowProps.rotation.y += (snowProps.rotSpeed);
+        snowProps.rotation.z += (snowProps.rotSpeed);
 
-        // パーティクル[i]を下に落とす（updateVelocity）
-        snowProps.position.y += snowProps.velocityY;
-        // パーティクル[i]を回転させる
-        snowProps.rotation.x += (snowProps.velocityY * .1);
-        snowProps.rotation.y += (snowProps.velocityY * .1);
-        snowProps.rotation.z += (snowProps.velocityY * .1);
-
-        // もしパーティクル[i]が落ちきったら（active check関数化）
+        // もしパーティクル[i]が動ききったら（active check関数化）
         if (snowProps.position.y < -this.viewWidth / 2) {
-          // 座標をリセット（yを上に戻す、x、zをランダムに）
-          // snowProps.init()
+          // 座標をリセット
+          // snowProps.init()でまとめる
           snowProps.position.set(
             Math.random() * this.viewWidth - this.viewWidth / 2,
             this.viewWidth - this.viewWidth / 2,
-            Math.random() * this.viewWidth / 10,
+            Math.random() * this.viewWidth,
           )
           snowProps.rotation.set(0, 0, Math.random() * Math.PI)
         }
 
-        // InstancedMeshのmatrixを更新
+        // InstancedMeshの行列変換・設定
         snowProps.updateMatrix()
-        // if(i===0) console.log(snowProps.matrix);
+        // if(i === 0)console.log('snowProps: ', snowProps);
         this.snowInstance.setMatrixAt(i, snowProps.matrix)
       }
+      // shader更新
       this.snowInstance.instanceMatrix.needsUpdate = true;
     }
   }
