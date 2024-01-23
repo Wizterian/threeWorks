@@ -23,7 +23,8 @@ import {
   InstancedMesh,
   Euler,
   InstancedBufferAttribute,
-  InstancedBufferGeometry
+  InstancedBufferGeometry,
+  Quaternion,
 } from 'three'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
@@ -60,25 +61,25 @@ export default class SnowEmitter {
   constructor(three) {
     this.three = three
     this.viewWidth = this.three.viewWidth
-    this.snowNum = 100000
+    this.snowNum = 10000
     this.snowInstance = null
     this.matrixProps = new Matrix4()
     this.otherProps = new Object3D()
     this.snowColor  = 0xffffff
     this.posSpeeds = new Float32Array(this.snowNum)
+    // this.axis = new Vector3(0, 0, 1)
+    // this.rotationQuaternion = new Quaternion()
   }
   // InstancedMesh生成
   init() {
     // テクスチャーを読み込み
 
-    // カスタム属性生成
-    for (let i = 0; i < this.snowNum; i++) this.posSpeeds[i] = Math.random() * -.5 - .5
+    // カスタム属性生成（https://chat.openai.com/share/c39ee55b-0975-41f1-9273-c08f2eab0e72）
+    for (let i = 0; i < this.snowNum; i++) this.posSpeeds[i] = Math.random() * -.2 - .2
     const posSpeedAttribute = new InstancedBufferAttribute(this.posSpeeds, 1);
-
     // ジオメトリ
-    const snowPlane = new PlaneGeometry(1, 1)//new InstancedBufferGeometry().copy(new PlaneGeometry(1, 1))
+    const snowPlane = new PlaneGeometry(1, 1)
     snowPlane.setAttribute('posSpeed', posSpeedAttribute); // カスタム属性追加
-
     // マテリアル
     const snowMat = new MeshBasicMaterial({
       color: this.snowColor,
@@ -92,23 +93,37 @@ export default class SnowEmitter {
       snowMat,
       this.snowNum
     )
-    // パーティクル属性管理配列
+
+    // パーティクル属性生成
     for (let i = 0; i < this.snowNum; i++) {
       // パーティクル属性管理インスタンス
       // const otherProps = new SnowProps()
       // パーティクル属性生成（position、color etc.）
-      this.matrixProps.setPosition(
-        Math.random() * this.viewWidth - this.viewWidth / 2,
-        Math.random() * this.viewWidth - this.viewWidth / 2,
-        Math.random() * this.viewWidth,
-      )
-      // this.matrixProps.makeRotationFromEuler( // Euler角を行列に変換
+
+      // makeRotationFromEulerの回転行列は最初に設定
+      // this.matrixProps.makeRotationFromEuler(
       //   new Euler(
       //     Math.random() * Math.PI,
       //     Math.random() * Math.PI,
       //     Math.random() * Math.PI
       //   )
       // );
+
+      this.matrixProps.setPosition(
+        Math.random() * this.viewWidth - this.viewWidth / 2,
+        Math.random() * this.viewWidth - this.viewWidth / 2,
+        Math.random() * this.viewWidth,
+      )
+
+      const rotationMatrix = new Matrix4();
+      rotationMatrix.makeRotationX(Math.random() * Math.PI);
+      this.matrixProps.multiply(rotationMatrix);
+
+      rotationMatrix.makeRotationY(Math.random() * Math.PI);
+      this.matrixProps.multiply(rotationMatrix);
+
+      rotationMatrix.makeRotationZ(Math.random() * Math.PI);
+      this.matrixProps.multiply(rotationMatrix);
 
       // 行列設定・設定
       // this.snowInstance.setColorAt(i, new Color(otherProps.color)); // color instance
@@ -130,9 +145,11 @@ export default class SnowEmitter {
 
         // パーティクル[i]を動かす（updateでまとめる）
         this.otherProps.position.y += this.posSpeeds[i]//this.otherPropsArray[i].posSpeed;
-        // this.otherProps.rotation.x += 1;
-        // this.otherProps.rotation.y += 1;
-        // this.otherProps.rotation.z += 1;
+        // this.otherProps.rotation.x += .01;
+        // this.otherProps.rotation.y += .01;
+        // this.otherProps.rotation.z += .02;
+        // this.rotationQuaternion.setFromAxisAngle(this.axis, 0.02);
+        // this.otherProps.quaternion.premultiply(this.rotationQuaternion);
 
         // もしパーティクル[i]が動ききったら（active check関数化）
         if (this.otherProps.position.y < -this.viewWidth / 2) {
@@ -149,7 +166,6 @@ export default class SnowEmitter {
 
         // InstancedMeshの行列変換・設定
         this.otherProps.updateMatrix()
-        // if(i === 0)console.log('otherProps: ', otherProps);
         this.snowInstance.setMatrixAt(i, this.otherProps.matrix)
       }
       // shader更新
