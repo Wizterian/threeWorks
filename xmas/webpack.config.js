@@ -112,6 +112,12 @@ module.exports = [
     module: {
       rules: [
         {
+          test: /\.(frag|vert|glsl|fs|vs)$/,
+          use: [
+            'raw-loader'
+          ]
+        },
+        {
           test: /\.pug$/, // vueのpug用 <template lang="pug">の場合
           loader: 'vue-pug-loader'
         },

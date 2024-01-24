@@ -16,7 +16,7 @@ import {
   // DoubleSide,
   // Clock,
   Vector3,
-  // ShaderMaterial,
+  ShaderMaterial,
   // TextureLoader,
   // Vector2,
   DoubleSide,
@@ -28,6 +28,8 @@ import {
   MathUtils,
 } from 'three'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import vertexShader from './snow.vs?raw'
+import fragmentShader from './snow.fs?raw'
 
 export const rndFlt = (num = 1) => Math.random() * num;
 export const rndRng = (max, min) => Math.random() * (max - min) + min;
@@ -84,10 +86,22 @@ export default class SnowEmitter {
     // マテリアル
     const snowMat = new MeshBasicMaterial({
       color: this.snowColor,
-      // transparent: true,
+      transparent: true,
       side: DoubleSide,
       // uTex: {value: new TextureLoader().load(images[2].src)},
     })
+    // const snowMat = new ShaderMaterial({
+    //   color: this.snowColor,
+    //   // blending: param.blending,
+    //   transparent: true,
+    //   depthWrite: false,
+    //   // vertexShader: param.vertexShader,
+    //   // fragmentShader: param.fragmentShader,
+    //   // uniforms: {
+    //   //   // uColor: { value: new Color(0xffff00) },
+    //   //   uTexture: { value: param.texture }
+    //   // },
+    // })
     // インスタンスメッシュ（bufferGeometryのようなイメージ）
     this.snowInstance = new InstancedMesh(
       snowPlane,
@@ -110,16 +124,10 @@ export default class SnowEmitter {
         )
       );
 
-      // this.matrixProps.setPosition(
-      //   Math.random() * this.viewWidth - this.viewWidth / 2,
-      //   Math.random() * this.viewWidth - this.viewWidth / 2,
-      //   Math.random() * this.viewWidth/2 + this.viewWidth/2,
-      // )
-
       this.matrixProps.setPosition(
-        MathUtils.randFloat(-this.viewWidth, this.viewWidth),
-        MathUtils.randFloat(-this.viewWidth, this.viewWidth),
-        MathUtils.randFloat(-this.viewWidth, this.viewWidth),
+        Math.random() * this.viewWidth - this.viewWidth / 2,
+        Math.random() * this.viewWidth - this.viewWidth / 2,
+        Math.random() * this.viewWidth/2 + this.viewWidth/2,
       )
 
       // const rotationMatrix = new Matrix4();
@@ -150,12 +158,8 @@ export default class SnowEmitter {
         );
 
         // パーティクル[i]を動かす（updateでまとめる）
-        this.otherProps.position.y += this.posSpeeds[i]//this.otherPropsArray[i].posSpeed;
-        // this.otherProps.rotation.x += .01;
-        // this.otherProps.rotation.y += .01;
-        // this.otherProps.rotation.z += .02;
-        // this.rotationQuaternion.setFromAxisAngle(this.axis, 0.02);
-        // this.otherProps.quaternion.premultiply(this.rotationQuaternion);
+        this.otherProps.position.y += this.posSpeeds[i]
+        this.otherProps.rotation.x += this.posSpeeds[i] * .05;
 
         // もしパーティクル[i]が動ききったら（active check関数化）
         if (this.otherProps.position.y < -this.viewWidth / 2) {
