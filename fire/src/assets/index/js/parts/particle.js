@@ -25,6 +25,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import vertexShader from './points.vs?raw'
 import fragmentShader from './points.fs?raw'
 import { getRandomInt, getRad, getDeg, getSpherePos, randomRange } from '../../../common/js/libs/Utils'
+import Stats from 'https://cdnjs.cloudflare.com/ajax/libs/stats.js/17/Stats.js'
+console.log('Stats: ', Stats);
+
 
 class ThreeScene {
   constructor() {
@@ -43,8 +46,13 @@ class ThreeScene {
     this.camera = null
     this.renderer = null
     this.isInitialized = false
+    this.stats = new Stats();
+    this.stats.showPanel(0);
   }
   init () {
+    stats = new Stats();
+    stats.showPanel(0);
+    document.body.appendChild(stats.dom);
     this._setScene()
     this._setRenderer()
     this._setCamera()
@@ -121,6 +129,8 @@ class ThreeScene {
   }
 
   update() {
+    stats.begin();
+    stats.end();
     this.renderer.render(this.scene, this.camera)
   }
 }
@@ -197,7 +207,7 @@ class ParticleBufferGeo {
 class ParticleEmitter {
   constructor(threeScene) {
     this.threeScene = threeScene
-    this.pNum = 1000
+    this.pNum = 500
     this.pPropsArr = [] // props for each particle
     this.positions = new Float32Array(this.pNum * 3) // for BufferGeometry
     this.colors = new Float32Array(this.pNum * 3)
@@ -275,6 +285,7 @@ class ParticleEmitter {
   }
   // パーティクルが非活性なら初期値の設定・生成する
   activate() {
+    
     let pCount = 0
     const currentTime = Date.now()
     const sphereR = 1
