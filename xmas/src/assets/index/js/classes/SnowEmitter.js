@@ -25,6 +25,7 @@ import {
   InstancedBufferAttribute,
   InstancedBufferGeometry,
   Quaternion,
+  MathUtils,
 } from 'three'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
@@ -83,7 +84,7 @@ export default class SnowEmitter {
     // マテリアル
     const snowMat = new MeshBasicMaterial({
       color: this.snowColor,
-      transparent: true,
+      // transparent: true,
       side: DoubleSide,
       // uTex: {value: new TextureLoader().load(images[2].src)},
     })
@@ -101,29 +102,35 @@ export default class SnowEmitter {
       // パーティクル属性生成（position、color etc.）
 
       // makeRotationFromEulerの回転行列は最初に設定
-      // this.matrixProps.makeRotationFromEuler(
-      //   new Euler(
-      //     Math.random() * Math.PI,
-      //     Math.random() * Math.PI,
-      //     Math.random() * Math.PI
-      //   )
-      // );
+      this.matrixProps.makeRotationFromEuler(
+        new Euler(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI
+        )
+      );
+
+      // this.matrixProps.setPosition(
+      //   Math.random() * this.viewWidth - this.viewWidth / 2,
+      //   Math.random() * this.viewWidth - this.viewWidth / 2,
+      //   Math.random() * this.viewWidth/2 + this.viewWidth/2,
+      // )
 
       this.matrixProps.setPosition(
-        Math.random() * this.viewWidth - this.viewWidth / 2,
-        Math.random() * this.viewWidth - this.viewWidth / 2,
-        Math.random() * this.viewWidth,
+        MathUtils.randFloat(-this.viewWidth, this.viewWidth),
+        MathUtils.randFloat(-this.viewWidth, this.viewWidth),
+        MathUtils.randFloat(-this.viewWidth, this.viewWidth),
       )
 
-      const rotationMatrix = new Matrix4();
-      rotationMatrix.makeRotationX(Math.random() * Math.PI);
-      this.matrixProps.multiply(rotationMatrix);
+      // const rotationMatrix = new Matrix4();
+      // rotationMatrix.makeRotationX(Math.random() * Math.PI);
+      // this.matrixProps.multiply(rotationMatrix);
 
-      rotationMatrix.makeRotationY(Math.random() * Math.PI);
-      this.matrixProps.multiply(rotationMatrix);
+      // rotationMatrix.makeRotationY(Math.random() * Math.PI);
+      // this.matrixProps.multiply(rotationMatrix);
 
-      rotationMatrix.makeRotationZ(Math.random() * Math.PI);
-      this.matrixProps.multiply(rotationMatrix);
+      // rotationMatrix.makeRotationZ(Math.random() * Math.PI);
+      // this.matrixProps.multiply(rotationMatrix);
 
       // 行列設定・設定
       // this.snowInstance.setColorAt(i, new Color(otherProps.color)); // color instance
@@ -133,9 +140,8 @@ export default class SnowEmitter {
     this.three.scene.add(this.snowInstance)
   }
   animate() {
-    for (let i = 0; i < this.snowNum; i++) {
-      // もしパーティクル[i]がアクティブなら
-      if(this.snowInstance) {
+    if(this.snowInstance) {
+      for (let i = 0; i < this.snowNum; i++) {
         this.snowInstance.getMatrixAt(i, this.matrixProps);
         this.matrixProps.decompose(
           this.otherProps.position,

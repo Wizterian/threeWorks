@@ -17,7 +17,7 @@ export default class ThreeScene {
     this.height = window.innerHeight
     this.viewWidth = 1280
     this.cameraParam = {
-      fov: 70,
+      fov: 45,
       near: 0.1,
       far: this.viewWidth * 2,
       lookAt: new Vector3(0, 0, 0),
