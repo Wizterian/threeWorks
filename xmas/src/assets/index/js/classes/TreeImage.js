@@ -7,7 +7,8 @@ import {
   Clock,
   ShaderMaterial,
   TextureLoader,
-  Vector2
+  Vector2,
+  MeshBasicMaterial
 } from 'three'
 
 export default class TreeImage {
@@ -21,8 +22,7 @@ export default class TreeImage {
   }
 
   init(images) {
-    const meshScale = 100
-    const geometry = new PlaneGeometry(2, 2, 10, 10)
+    const geometry = new PlaneGeometry(1, 1)
     const material = new ShaderMaterial({
       // wireframe: true,
       side: DoubleSide,
@@ -38,8 +38,7 @@ export default class TreeImage {
         varying vec2 vUv;
         void main() {
           vUv = uv;
-          // gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          gl_Position = vec4(position, 1.0);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
 
@@ -73,7 +72,7 @@ export default class TreeImage {
       `,
     })
     this.plane = new Mesh( geometry, material )
-    this.plane.scale.set(meshScale*1.6, meshScale, meshScale)
+    this.plane.scale.set(window.innerWidth, window.innerHeight, 1)
 
     const ambientLight = new AmbientLight(0xffffff, 1)
     const directionalLight = new DirectionalLight(0xff00ff, 1)
@@ -87,6 +86,7 @@ export default class TreeImage {
   }
 
   resize() {
+    this.plane.scale.set(window.innerWidth, window.innerHeight, 1)
     this.plane.material.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
   }
 

@@ -64,14 +64,12 @@ export default class SnowEmitter {
   constructor(three) {
     this.three = three
     this.viewWidth = this.three.viewWidth
-    this.snowNum = 10000
+    this.snowNum = 30000
     this.snowInstance = null
     this.matrixProps = new Matrix4()
     this.otherProps = new Object3D()
     this.snowColor  = 0xffffff
     this.posSpeeds = new Float32Array(this.snowNum)
-    // this.axis = new Vector3(0, 0, 1)
-    // this.rotationQuaternion = new Quaternion()
   }
   // InstancedMesh生成
   init() {
@@ -127,7 +125,7 @@ export default class SnowEmitter {
       this.matrixProps.setPosition(
         Math.random() * this.viewWidth - this.viewWidth / 2,
         Math.random() * this.viewWidth - this.viewWidth / 2,
-        Math.random() * this.viewWidth/2 + this.viewWidth/2,
+        Math.random() * this.viewWidth / 2 + this.viewWidth / 2,
       )
 
       // const rotationMatrix = new Matrix4();

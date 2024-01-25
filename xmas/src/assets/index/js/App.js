@@ -129,7 +129,7 @@ export default class ThreeScene {
     const threeScene = new ThreeScene()
     threeScene.init()
     const treeImage = new TreeImage(threeScene)
-    // treeImage.init(images)
+    treeImage.init(images)
     const snowEmitter = new SnowEmitter(threeScene)
     snowEmitter.init(images)
     // const smoke = new Smoke(threeScene)
@@ -137,7 +137,7 @@ export default class ThreeScene {
 
     window.addEventListener("resize", () => {
       threeScene.resize()
-      // treeImage.resize()
+      treeImage.resize()
     })
 
     const animate = () => {
