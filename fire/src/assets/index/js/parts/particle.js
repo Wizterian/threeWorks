@@ -25,9 +25,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import vertexShader from './points.vs?raw'
 import fragmentShader from './points.fs?raw'
 import { getRandomInt, getRad, getDeg, getSpherePos, randomRange } from '../../../common/js/libs/Utils'
-import Stats from 'https://cdnjs.cloudflare.com/ajax/libs/stats.js/17/Stats.js'
-console.log('Stats: ', Stats);
-
+import Stats from 'three/examples/jsm/libs/stats.module.js'
 
 class ThreeScene {
   constructor() {
@@ -50,9 +48,9 @@ class ThreeScene {
     this.stats.showPanel(0);
   }
   init () {
-    stats = new Stats();
-    stats.showPanel(0);
-    document.body.appendChild(stats.dom);
+    // stats = new Stats();
+    this.stats.showPanel(0);
+    document.body.appendChild(this.stats.dom);
     this._setScene()
     this._setRenderer()
     this._setCamera()
@@ -129,8 +127,8 @@ class ThreeScene {
   }
 
   update() {
-    stats.begin();
-    stats.end();
+    this.stats.begin();
+    this.stats.end();
     this.renderer.render(this.scene, this.camera)
   }
 }
