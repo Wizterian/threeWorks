@@ -169,6 +169,9 @@ module.exports = [
       },
       port: 3006,
       open: true
-    }
+    },
+    // watchOptions: {
+    //   poll: 1000,
+    // },
   },
 ];

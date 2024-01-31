@@ -1,9 +1,4 @@
-import { toArray } from 'gsap';
 import {
-  // Scene,
-  // PerspectiveCamera,
-  // OrthographicCamera,
-  // WebGLRenderer,
   Color,
   Matrix4,
   Object3D,
@@ -13,7 +8,6 @@ import {
   // AmbientLight,
   // DirectionalLight,
   // Mesh,
-  // DoubleSide,
   // Clock,
   Vector3,
   ShaderMaterial,
@@ -23,97 +17,52 @@ import {
   InstancedMesh,
   Euler,
   InstancedBufferAttribute,
-  InstancedBufferGeometry,
-  Quaternion,
-  MathUtils,
+  BufferAttribute,
+  // InstancedBufferGeometry,
+  // Quaternion,
+  // MathUtils,
+  TextureLoader
 } from 'three'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import vertexShader from './snow.vs?raw'
-import fragmentShader from './snow.fs?raw'
-
-export const rndFlt = (num = 1) => Math.random() * num;
-export const rndRng = (max, min) => Math.random() * (max - min) + min;
-
-// class SnowProps extends Object3D {
-//   constructor() {
-//     super();
-//     this.sclRange = 1000
-//     // this.rotRange = 360 * (180 / Math.PI)
-//     this.rotSpeed = Math.random() * 0.01 + 0.01
-//     this.posSpeed = Math.random() * -2
-//     this.opacity = Math.random() * .5 + .5
-//     this.color ='0xffffff' // new Color(0xffffff)
-//     this.isActive = true
-//   }
-//   activate() {
-//     this.isActive = true;
-//   }
-//   deactivate() {
-//     this.isActive = false;
-//   }
-//   update(vel) {
-//     // 行列の変換はupdateMatrix関数があるので不要
-//     // obj3d.position.add(vel)
-//     // obj3d.updteMatrix()
-//     // XYZを行列に変換
-//     // this.velocity.add(this.acceleration)
-//   }
-// }
 
 export default class SnowEmitter {
   constructor(three) {
     this.three = three
     this.viewWidth = this.three.viewWidth
-    this.snowNum = 30000
+    this.snowNum = 10000
     this.snowInstance = null
     this.matrixProps = new Matrix4()
     this.otherProps = new Object3D()
     this.snowColor  = 0xffffff
     this.posSpeeds = new Float32Array(this.snowNum)
   }
-  // InstancedMesh生成
-  init() {
-    // テクスチャーを読み込み
-
-    // カスタム属性生成（https://chat.openai.com/share/c39ee55b-0975-41f1-9273-c08f2eab0e72）
+  // InstancedMesh
+  init(images) {
+    // Custom Property（https://chat.openai.com/share/c39ee55b-0975-41f1-9273-c08f2eab0e72）
     for (let i = 0; i < this.snowNum; i++) this.posSpeeds[i] = Math.random() * -.2 - .2
-    const posSpeedAttribute = new InstancedBufferAttribute(this.posSpeeds, 1);
-    // ジオメトリ
     const snowPlane = new PlaneGeometry(1, 1)
-    snowPlane.setAttribute('posSpeed', posSpeedAttribute); // カスタム属性追加
-    // マテリアル
+    snowPlane.setAttribute( // カスタム属性追加
+      'posSpeed',
+      new BufferAttribute(this.posSpeeds, 1)
+    )
+    // Material
     const snowMat = new MeshBasicMaterial({
-      color: this.snowColor,
-      transparent: true,
+      // color: this.snowColor,
       side: DoubleSide,
-      // uTex: {value: new TextureLoader().load(images[2].src)},
+      transparent: true,
+      map: images[2],
     })
-    // const snowMat = new ShaderMaterial({
-    //   color: this.snowColor,
-    //   // blending: param.blending,
-    //   transparent: true,
-    //   depthWrite: false,
-    //   // vertexShader: param.vertexShader,
-    //   // fragmentShader: param.fragmentShader,
-    //   // uniforms: {
-    //   //   // uColor: { value: new Color(0xffff00) },
-    //   //   uTexture: { value: param.texture }
-    //   // },
-    // })
-    // インスタンスメッシュ（bufferGeometryのようなイメージ）
+    // InstancedMesh
     this.snowInstance = new InstancedMesh(
       snowPlane,
       snowMat,
       this.snowNum
     )
 
-    // パーティクル属性生成
+    // Particle Property
     for (let i = 0; i < this.snowNum; i++) {
-      // パーティクル属性管理インスタンス
-      // const otherProps = new SnowProps()
-      // パーティクル属性生成（position、color etc.）
-
-      // makeRotationFromEulerの回転行列は最初に設定
+      // position、color etc.
+      // makeRotationFromEuler should be written at first
       this.matrixProps.makeRotationFromEuler(
         new Euler(
           Math.random() * Math.PI,
@@ -138,11 +87,10 @@ export default class SnowEmitter {
       // rotationMatrix.makeRotationZ(Math.random() * Math.PI);
       // this.matrixProps.multiply(rotationMatrix);
 
-      // 行列設定・設定
+      // Matririx Calculation to InstanceMesh
       // this.snowInstance.setColorAt(i, new Color(otherProps.color)); // color instance
       this.snowInstance.setMatrixAt(i, this.matrixProps); // set matrix including pos, rotate, scale
     }
-    // インスタンスメッシュをシーンに追加
     this.three.scene.add(this.snowInstance)
   }
   animate() {
@@ -181,3 +129,5 @@ export default class SnowEmitter {
     }
   }
 }
+
+// DepthとBloomをつける

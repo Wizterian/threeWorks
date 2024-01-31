@@ -9,6 +9,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import LoadImage from './utils/LoadImage.js';
 import TreeImage from './classes/TreeImage.js';
 import SnowEmitter from './classes/SnowEmitter.js';
+import ShootingStar from './classes/ShootingStar.js';
 // import Smoke from './classes/Smoke.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
 export default class ThreeScene {
@@ -132,6 +133,9 @@ export default class ThreeScene {
     treeImage.init(images)
     const snowEmitter = new SnowEmitter(threeScene)
     snowEmitter.init(images)
+    const shootingStar = new ShootingStar(threeScene)
+    // shootingStar.init(images)
+
     // const smoke = new Smoke(threeScene)
     // smoke.init()
 
@@ -144,6 +148,7 @@ export default class ThreeScene {
       window.requestAnimationFrame(() => {
         threeScene.animate()
         snowEmitter.animate()
+        shootingStar.update()
         // treeImage.animate()
         animate()
       })

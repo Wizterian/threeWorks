@@ -10,6 +10,8 @@ import {
   Vector2,
   MeshBasicMaterial
 } from 'three'
+import vertexShader from './shader/tree.vs?raw'
+import fragmentShader from './shader/tree.fs?raw'
 
 export default class TreeImage {
   constructor(threeScene) {
@@ -30,46 +32,12 @@ export default class TreeImage {
       uniforms: {
         resolution: {value: new Vector2(window.innerWidth, window.innerHeight)},
         imageResolution: { value: new Vector2(7455, 4579)},
-        uTex: {value: new TextureLoader().load(images[0].src)},
-        uTexDepth: {value: new TextureLoader().load(images[1].src)},
+        uTex: {value: images[0]},
+        uTexDepth: {value: images[1]},
         uMouse: {value: this.mouse},
       },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-
-      fragmentShader: `
-        varying vec2 vUv;
-        uniform vec2 resolution;
-        uniform vec2 imageResolution;
-        uniform sampler2D uTex;
-        uniform sampler2D uTexDepth;
-        uniform vec2 uMouse;
-
-        void main(){
-
-          // If the UV value is below 1, the texture becomes larger and can cover the window. (The value of 1 fits the window exactly)
-          vec2 ratio = vec2(
-            min((resolution.x / resolution.y) / (imageResolution.x / imageResolution.y), 1.0),
-            min((resolution.y / resolution.x) / (imageResolution.y / imageResolution.x), 1.0)
-          );
-
-          // When the UV value is below 1, it needs to be centered with the number by subtracting the ratio from 1 (100%)
-          vec2 uv = vec2(
-            vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
-            vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
-          );
-
-          vec4 tex = texture2D(uTex, uv);
-          vec4 texDepth = texture2D(uTexDepth, uv);
-          vec4 color = texture2D(uTex, uv + (uMouse -vec2(0.5)) *0.02 * texDepth.r);
-          gl_FragColor = color;
-        }
-      `,
+      vertexShader,
+      fragmentShader,
     })
     this.plane = new Mesh( geometry, material )
     this.plane.scale.set(window.innerWidth, window.innerHeight, 1)
