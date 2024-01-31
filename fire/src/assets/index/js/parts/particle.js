@@ -19,7 +19,8 @@ import {
   ShaderMaterial,
   Texture,
   AdditiveBlending,
-  Points
+  Points,
+  sizeAttenuation,
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import vertexShader from './points.vs?raw'
@@ -176,6 +177,7 @@ class ParticleBufferGeo {
       blending: param.blending,
       transparent: true,
       depthWrite: false,
+      sizeAttenuation: true,
       vertexShader: param.vertexShader,
       fragmentShader: param.fragmentShader,
       uniforms: {
@@ -191,9 +193,11 @@ class ParticleBufferGeo {
 
     this.obj = new Points(this.geo, this.mat)
     param.scene.add(this.obj)
+    return this.obj
   }
   update() {
     this.obj.position.copy(this.velocity) // 特に動かない（と思う）
+    // this.obj.position.x += 1
 
     this.obj.geometry.attributes.position.needsUpdate = true
     this.obj.geometry.attributes.color.needsUpdate = true
@@ -214,7 +218,7 @@ class ParticleEmitter {
     this.gravity = new Vector3(0, 0.1, 0)
     // this.clock = new Clock()
     this.lastUpdatedTime = Date.now()
-    this.pGeo = new ParticleBufferGeo()
+    this.pGeo = null //new ParticleBufferGeo()
   }
   init(images) {
     const texture = new Texture(images[0])
