@@ -4,6 +4,7 @@ import {
   OrthographicCamera,
   WebGLRenderer,
   Vector3,
+  AxesHelper,
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import LoadImage from './utils/LoadImage.js';
@@ -92,6 +93,9 @@ export default class ThreeScene {
       this.renderer.domElement
     )
     this.orbitcontrols.enableDamping = true
+
+    const axesHelper = new AxesHelper( 500 );
+    this.scene.add( axesHelper );
   }
 
   _setRenderer() {
@@ -134,7 +138,7 @@ export default class ThreeScene {
     const snowEmitter = new SnowEmitter(threeScene)
     snowEmitter.init(images)
     const shootingStar = new ShootingStar(threeScene)
-    // shootingStar.init(images)
+    shootingStar.init(images)
 
     // const smoke = new Smoke(threeScene)
     // smoke.init()
@@ -149,7 +153,6 @@ export default class ThreeScene {
         threeScene.animate()
         snowEmitter.animate()
         shootingStar.update()
-        // treeImage.animate()
         animate()
       })
     }
