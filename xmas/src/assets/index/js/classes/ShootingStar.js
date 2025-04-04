@@ -21,13 +21,18 @@ import vertexShader from './shader/star.vs?raw'
 import fragmentShader from './shader/star.fs?raw'
 
 class particleProps extends Object3D{
-  constructor() {
+  constructor(three) {
     super()
+    this.three = three
     this.velocity = new Vector3()
     this.opacity = 1 // 0にする
   }
-  init() {
-    this.velocity = new Vector3()
+  init(three) {
+    this.velocity = new Vector3(
+      Math.random() * this.three.width - this.three.width / 2,
+      0,
+      1
+    )
     this.opacity = 1 // 0にする
   }
   updateVelocity() {
@@ -40,32 +45,32 @@ class StarParticle { // BufferGeometry
     this.bufferGeo = new BufferGeometry() // ジオメトリ
     this.pointsObj = null // パーティクル
   }
-  init(para) {
-    if(!para) return
+  init(param) {
+    if(!param) return
     // マテリアル作成
-    // const starwMat = new ShaderMaterial({
+    // const starMat = new ShaderMaterial({
     //   blending: AdditiveBlending,
     //   transparent: true,
     //   depthWrite: false,
-    //   vertexShader: para.vertexShader,
-    //   fragmentShader: para.fragmentShader,
+    //   vertexShader: param.vertexShader,
+    //   fragmentShader: param.fragmentShader,
     //   uniforms: {
-    //     uTexture: { value: para.texture }
+    //     uTexture: { value: param.texture }
     //   },
     // })
-    const starwMat = new PointsMaterial({
+    const starMat = new PointsMaterial({
       sizeAttenuation: true,
       color: 0x00ff00,
-      size: 100,
+      size: 50,
     })
     // shader属性追加
-    this.bufferGeo.setAttribute('position', new BufferAttribute(para.positions, 3));
-    this.bufferGeo.setAttribute('color', new BufferAttribute(para.colors, 3))
+    this.bufferGeo.setAttribute('position', new BufferAttribute(param.positions, 3));
+    this.bufferGeo.setAttribute('color', new BufferAttribute(param.colors, 3))
     // this.bufferGeo.setAttribute('opacity', new BufferAttribute(this.opacityArr, 1))
     // this.bufferGeo.setAttribute('scale', new BufferAttribute(this.scaleArr, 1))
 
-    this.pointsObj = new Points(this.bufferGeo, starwMat)
-    para.scene.add(this.pointsObj)
+    this.pointsObj = new Points(this.bufferGeo, starMat)
+    param.scene.add(this.pointsObj)
   }
   update() {
     this.pointsObj.position.set(0, 0, 0)
@@ -76,7 +81,7 @@ class StarParticle { // BufferGeometry
 export default class ShootingStar { // Emitter
   constructor(three) {
     this.three = three
-    this.viewWidth = this.three.viewWidth
+    // this.viewWidth = this.three.viewWidth
 
     this.starNum = 3
     this.starParticle = new StarParticle()
@@ -93,8 +98,8 @@ export default class ShootingStar { // Emitter
     // カスタム属性値作成
     for (let i = 0; i < this.starNum; i++) {
       // カスタム属性
-      const pProps = new particleProps() // 属性管理Object3D
-      pProps.init()
+      const pProps = new particleProps(this.three) // 属性管理Object3D
+      pProps.init(this.three)
       this.pPropsArr.push(pProps)
 
       this.positionArr[i*3+0] = pProps.velocity.x

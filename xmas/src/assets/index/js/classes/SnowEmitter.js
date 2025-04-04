@@ -47,7 +47,6 @@ export default class SnowEmitter {
     )
     // Material
     const snowMat = new MeshBasicMaterial({
-      // color: this.snowColor,
       side: DoubleSide,
       transparent: true,
       map: images[2],

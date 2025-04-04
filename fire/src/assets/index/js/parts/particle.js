@@ -177,7 +177,7 @@ class ParticleBufferGeo {
       blending: param.blending,
       transparent: true,
       depthWrite: false,
-      sizeAttenuation: true,
+      // sizeAttenuation: true,
       vertexShader: param.vertexShader,
       fragmentShader: param.fragmentShader,
       uniforms: {
