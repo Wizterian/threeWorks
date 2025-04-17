@@ -165,6 +165,7 @@ export default class ThreeScene {
     const animate = () => {
       window.requestAnimationFrame(() => {
         threeScene.animate()
+        initParticle.animate()
         // snowEmitter.animate()
         // shootingStar.update()
         animate()
