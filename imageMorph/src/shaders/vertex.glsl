@@ -15,26 +15,33 @@ varying vec2 vUv;
 
 void main()
 {
+    // Delay 時差効果
     float noiseOrigin = simplexNoise3d(position * .2);
     float noiseTarget = simplexNoise3d(aPositionTarget * .2);
     float noise = mix(noiseOrigin, noiseTarget, uProgress);
     noise = smoothstep(-1.0, 1.0, noise);
 
-    // Delay 時差効果
-    float duration = 0.4;
+    float duration = 0.6;
     float delay = (1.0 - duration) * noise; // b/w 0.0 and 0.6
     float end = delay + duration; // b/w 0.0 and 1.0
     float progress = smoothstep(delay, end, uProgress);
 
-    // Final calculation
     vec3 mixedPosition = mix(position, aPositionTarget, progress);
 
-    // fractuation
+    // // スパイラルオフセット
+    // float angle = progress * 6.2831 * 3.0;
+    // float radius = (1.0 - progress) * 100.5;
+    // float spinX = cos(angle) * radius;
+    // float spinZ = sin(angle) * radius;
+
+    // mixedPosition.x += spinX;
+    // mixedPosition.z += spinZ;
+
+    // ゆらぎ
     float timeScale = .1; // 時間の進み具合
     float noiseScale = 2.; // ノイズ空間のスケール
-    float offsetStrength = 5.; // 揺らぎの大きさ
+    float offsetStrength = 1.5; // 揺らぎの大きさ
 
-    // ノイズによるオフセット
     float offsetX = simplexNoise3d(vec3(mixedPosition * noiseScale + uTime * timeScale));
     float offsetY = simplexNoise3d(vec3(mixedPosition.yzx * noiseScale + uTime * timeScale + 10.0));
     float offsetZ = simplexNoise3d(vec3(mixedPosition.zxy * noiseScale + uTime * timeScale + 20.0));
