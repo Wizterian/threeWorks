@@ -15,57 +15,76 @@ varying vec2 vUv;
 
 void main()
 {
-    // Delay 時差効果
-    float noiseOrigin = simplexNoise3d(position);
-    float noiseTarget = simplexNoise3d(aPositionTarget);
-    float noise = mix(noiseOrigin, noiseTarget, uProgress);
-    noise = smoothstep(-1.0, 1.0, noise);
+// === Y軸に対する範囲・中心調整用 ===
+float halfHeight = 375.0;               // 全体高さの半分（固定値）
+float dy = position.y;                  // 現在の頂点のY座標
+float normalizedY = (dy + halfHeight) / (2.0 * halfHeight); // Yを0.0〜1.0に正規化
 
-    float duration = 0.1;
-    float delay = (1.0 - duration) * noise; // b/w 0.0 and 0.6
-    float end = delay + duration; // b/w 0.0 and 1.0
-    float progress = smoothstep(delay, end, uProgress);
+// === X方向のパーティクルばらつき制御 ===
+float randomnessStrength = 0.1; // 横並びのパーティクルがばらける強さ（0〜0.5で調整）
 
-    vec3 mixedPosition = mix(position, aPositionTarget, progress);
+// positionベースで一意の乱数を生成（0.0〜1.0）
+float random = fract(sin(dot(vec2(position.x, position.y), vec2(12.9898, 78.233))) * 43758.5453);
 
-    // // スパイラルオフセット
-    // float angle = progress * 6.2831 * 3.0;
-    // float radius = (1.0 - progress) * 100.5;
-    // float spinX = cos(angle) * radius;
-    // float spinZ = sin(angle) * radius;
+// -0.5〜+0.5の範囲に変換し、強さを掛けて最終オフセットに
+float delayOffset = (random - 0.5) * randomnessStrength;
 
-    // mixedPosition.x += spinX;
-    // mixedPosition.z += spinZ;
+// === 遅延付きの進行管理 ===
+float duration = 0.6; // 各パーティクルの変形にかかる時間（長いほどゆっくり）
 
-    // ゆらぎ
-    float timeScale = .5; // 時間の進み具合
-    float noiseScale = 2.; // ノイズ空間のスケール
-    float offsetStrength = 2.; // 揺らぎの大きさ
+// 遅延開始時間（上から順に早く始まる＋ランダムばらけ）
+float delay = (1.0 - duration) * (1.0 - normalizedY) + delayOffset;
+delay = clamp(delay, 0.0, 1.0 - duration); // 負やオーバー遅延を防ぐ
 
-    float offsetX = simplexNoise3d(vec3(mixedPosition * noiseScale + uTime * timeScale));
-    float offsetY = simplexNoise3d(vec3(mixedPosition.yzx * noiseScale + uTime * timeScale + 10.0));
-    float offsetZ = simplexNoise3d(vec3(mixedPosition.zxy * noiseScale + uTime * timeScale + 20.0));
-    vec3 noiseOffset = vec3(offsetX, offsetY, offsetZ) * offsetStrength;
+float end = delay + duration; // この頂点が完了する時刻
 
-    mixedPosition += noiseOffset;
+// グローバル進捗 uProgress をこの頂点に合わせてローカル進捗へ
+float progress = smoothstep(delay, end, uProgress);
 
-    // Final position
-    vec4 modelPosition = modelMatrix * vec4(mixedPosition, 1.0);
-    vec4 viewPosition = viewMatrix * modelPosition;
-    vec4 projectedPosition = projectionMatrix * viewPosition;
-    gl_Position = projectedPosition;
+// === 元画像→ターゲット画像への補間 ===
+vec3 mixedPosition = mix(position, aPositionTarget, progress);
 
-    // Point size
-    gl_PointSize = aSize * uSize * uResolution.y;
-    gl_PointSize *= (1.0 / - viewPosition.z);
+// === Y軸回転（ねじれ） ===
+float angle = progress * radians(360.0); // 進行度に応じた回転角度（最大360°）
+mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)); // 回転マトリクス（XZ平面）
+vec2 rotated = rot * vec2(mixedPosition.x, mixedPosition.z); // XZ座標を回転
 
-    // Texture color
-    vec4 colorFrom = texture(uTextureFrom, uv);
-    vec4 colorTo = texture(uTextureTo, uv);
-    vec4 blended = mix(colorFrom, colorTo, uProgress);
+// === 反り表現（Z方向のカーブ） ===
+float curveAmount = sin(progress * 3.1415) * 40.0; // 進行度に応じて0→最大→0になる反り量
+float offsetZ = (dy / halfHeight) * curveAmount;  // Y位置に応じたZ方向の反り具合
 
-    vColor = blended.rgb; // pow(blended.rgb, vec3(2.0));
+// === 見た目のばらけ（ランダム揺らぎ） ===
+float randomY = fract(sin(dot(vec2(position.y, position.x), vec2(39.3467, 11.135))) * 32142.239);
+float offsetX = (random - 0.5) * 1000.0;
+float offsetY = (randomY - 0.5) * 1000.0;
 
-    // Varying
-    vUv = uv;
+// トランジション中だけ揺らぎを出す係数（0→1→0）
+float visibility = sin(progress * 3.1415);
+
+// === 変形後の最終位置（揺らぎ係数を掛ける） ===
+vec3 twistedPosition = vec3(
+  rotated.x + offsetX * visibility,
+  dy + offsetY * visibility,
+  rotated.y + offsetZ
+);
+
+// === 座標変換・出力 ===
+vec4 modelPosition = modelMatrix * vec4(twistedPosition, 1.0);
+vec4 viewPosition = viewMatrix * modelPosition;
+vec4 projectedPosition = projectionMatrix * viewPosition;
+gl_Position = projectedPosition;
+
+// === Pointサイズ調整（デバイス距離に応じて） ===
+gl_PointSize = aSize * uSize * uResolution.y;
+gl_PointSize *= (1.0 / -viewPosition.z);
+
+// === テクスチャフェード（画像遷移） ===
+vec4 colorFrom = texture(uTextureFrom, uv);
+vec4 colorTo = texture(uTextureTo, uv);
+vec4 blended = mix(colorFrom, colorTo, progress);
+vColor = blended.rgb;
+
+// === UVをそのまま渡す ===
+vUv = uv;
+
 }

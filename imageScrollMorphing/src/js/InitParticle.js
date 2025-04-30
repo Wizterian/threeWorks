@@ -18,8 +18,8 @@ import { update } from 'three/examples/jsm/libs/tween.module.js'
 gsap.registerPlugin(ScrollTrigger)
 
 export default class InitParticle {
-  constructor(threeScene) {
-    this.threeScene = threeScene
+  constructor(three) {
+    this.three = three
     this.particles = {
       positions: [],
       maxCount: 0,
@@ -28,45 +28,38 @@ export default class InitParticle {
       material: null,
       points: null,
       morph: null,
-      currentIndex: 0,
-      nextIndex: 1,
+      fromIndex: 0,
+      toIndex: 1,
       maxIndex: null,
-      updateTextures: (fromIndex, toIndex) => {
-        const { images, positions, material, geometry } = this.particles;
-
-        material.uniforms.uTextureFrom.value = images[fromIndex];
-        material.uniforms.uTextureTo.value = images[toIndex];
-
-        geometry.attributes.position = positions[fromIndex];
-        geometry.attributes.aPositionTarget = positions[toIndex];
-      },
+      updateTextures: null,
     }
     this.clock = new Clock()
   }
 
   init(images) {
-
-    this.particles.images = [...images]
-    this.particles.maxIndex = this.particles.images.length - 1;
+    const particles = this.particles
+    const scene = this.three.scene
+    particles.images = [...images]
+    particles.maxIndex = particles.images.length - 1;
 
     // Geometryを作成
-    this.particles.geometry = new PlaneGeometry(750, 750, 128, 128)
-    this.particles.geometry
-      .setIndex(null)
+    particles.geometry = new PlaneGeometry(750, 750, 128 * 2, 128 * 2)
+    particles.geometry
+      // .setIndex(null)
       .deleteAttribute('normal')
 
     // 最大頂点数を取得・設定
-    const position = this.particles.geometry.attributes.position
-    this.particles.maxCount = position.count;
+    const position = particles.geometry.attributes.position
+    particles.maxCount = position.count;
 
-    const planePoints = this.particles.images.map((iamge, index) => {
+    particles.images.map((iamge, index) => {
 
-      // 移動するボジションを作る（この場合3つ）
+      // 画像ジオメトリの座標（ボジション）を生成
       const originalPosArray = position.array;
-      const newPosArray = new Float32Array(this.particles.maxCount * 3);
+      const newPosArray = new Float32Array(particles.maxCount * 3);
       const offset = 1//index * 100
 
-      for(let i = 0; i < this.particles.maxCount; i++) {
+      for(let i = 0; i < particles.maxCount; i++) {
         const i3 = i * 3
 
         // 頂点数を超えた場合はランダムに所得した既存の頂点に設定
@@ -79,92 +72,103 @@ export default class InitParticle {
         newPosArray[i3 + 2] = originalPosArray[i3 + 2] + offset;
       }
 
-      this.particles.positions.push(new Float32BufferAttribute(newPosArray, 3))
+      particles.positions.push(new Float32BufferAttribute(newPosArray, 3))
+
+      // ゆらぎ
+      // const particleMotionArr = new Float32Array(particles.maxCount)
+      // for(let i = 0; i < particles.maxCount; i++) {
+      //   particleMotionArr[i] = i;
+      // }
+      // particleMotionArr.push(new Float32BufferAttribute(particleMotionArr, 1))
+
     })
 
     // Attriuteを作成
-    const sizesArray = new Float32Array(this.particles.maxCount)
-    for(let i = 0; i < this.particles.maxCount; i++)
+    const sizesArray = new Float32Array(particles.maxCount)
+    for(let i = 0; i < particles.maxCount; i++)
 	    sizesArray[i] = Math.random()
 
-    this.particles.geometry.setAttribute('aPositionTarget', this.particles.positions[1])
-    this.particles.geometry.setAttribute('aSize', new Float32BufferAttribute(sizesArray, 1))
+    particles.geometry.setAttribute('aPositionTarget', particles.positions[1])
+    particles.geometry.setAttribute('aSize', new Float32BufferAttribute(sizesArray, 1))
 
     // Materialを作成
-    this.particles.material = new ShaderMaterial({
+    particles.material = new ShaderMaterial({
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
       uniforms:
       {
           uSize: new Uniform(10),
           uResolution: new Uniform(new Vector2(
-            this.threeScene.width * this.threeScene.pixelRatio,
-            this.threeScene.height * this.threeScene.pixelRatio
+            this.three.width * this.three.pixelRatio,
+            this.three.height * this.three.pixelRatio
           )),
           // 画像を設定
-          uTextureFrom: new Uniform(this.particles.images[this.particles.currentIndex]),
-          uTextureTo: new Uniform(this.particles.images[this.particles.nextIndex]),
+          uTextureFrom: new Uniform(particles.images[particles.fromIndex]),
+          uTextureTo: new Uniform(particles.images[particles.toIndex]),
           uProgress: new Uniform(0),
           uTime: new Uniform(0),
+          uHeight: new Uniform(this.three.height),
       },
       depthWrite: false,
     })
+    
 
     // Pointsを作成、シーンに追加
-    this.particles.points = new Points(
-      this.particles.geometry,
-      this.particles.material
+    particles.points = new Points(
+      particles.geometry,
+      particles.material
     )
-    this.particles.points.frustumCulled = false
-    this.threeScene.scene.add(this.particles.points)
+    particles.points.frustumCulled = false
+    this.three.scene.add(particles.points)
 
     // モーフィング
-    // this.particles.morph = (index) => {
+    particles.morph = (index) => {
 
-    //   // 次の座標を設定
-    //   this.particles.nextIndex = index;
+      // 次の座標を設定
+      particles.toIndex = index;
 
-    //   // Shaderに現在の座標と次の座標を設定
-    //   this.particles.geometry.attributes.position = this.particles.positions[this.particles.currentIndex]
-    //   this.particles.geometry.attributes.aPositionTarget = this.particles.positions[this.particles.nextIndex]
+      // Shaderに現在の座標と次の座標を設定
+      particles.geometry.attributes.position = particles.positions[particles.fromIndex]
+      particles.geometry.attributes.aPositionTarget = particles.positions[particles.toIndex]
 
-    //   // Shaderに現在の画像と次の画像を設定
-    //   this.particles.material.uniforms.uTexture.value = this.particles.images[this.particles.currentIndex];
-    //   this.particles.material.uniforms.uTextureTarget.value = this.particles.images[this.particles.nextIndex];
+      // Shaderに現在の画像と次の画像を設定
+      particles.material.uniforms.uTextureFrom.value = particles.images[particles.fromIndex];
+      particles.material.uniforms.uTextureTo.value = particles.images[particles.toIndex];
 
-    //   // トランジションのアニメーション（進捗度）設定
-    //   gsap.fromTo(
-    //       this.particles.material.uniforms.uProgress,
-    //       { value: 0 },
-    //       { value: 1,
-    //         duration: 2,
-    //         ease: "power2.inOut",
-    //       },
-    //   )
+      // トランジションのアニメーション（進捗度）設定
+      gsap.fromTo(
+          particles.material.uniforms.uProgress,
+          { value: 0 },
+          { value: 1,
+            duration: 2,
+            ease: "power2.inOut",
+          },
+      )
 
-    //   // 次の座標を現在の座標に設定
-    //   this.particles.currentIndex = this.particles.nextIndex;
-    // }
+      // 次の座標を現在の座標に設定
+      particles.fromIndex = particles.toIndex;
+    }
 
-    this.particles.updateTextures = (fromIndex, toIndex) => {
-      console.log('fromIndex: ', fromIndex);
-      console.log('toIndex: ', toIndex);
-      const { images, positions, material, geometry } = this.particles;
+    particles.updateTextures = (fromIndex, toIndex) => {
+      particles.fromIndex = fromIndex;
+      particles.toIndex = toIndex;
 
-      material.uniforms.uTextureFrom.value = images[fromIndex];
-      material.uniforms.uTextureTo.value = images[toIndex];
+      const { images, positions, material, geometry } = particles;
 
-      geometry.attributes.position = positions[fromIndex];
-      geometry.attributes.aPositionTarget = positions[toIndex];
+      material.uniforms.uTextureFrom.value = images[particles.fromIndex];
+      material.uniforms.uTextureTo.value = images[particles.toIndex];
+
+      geometry.attributes.position = positions[particles.fromIndex];
+      geometry.attributes.aPositionTarget = positions[particles.toIndex];
     }
 
     document.querySelectorAll('.section').forEach((section, index) => {
 
       let {
         maxIndex,
-        currentIndex,
-        nextIndex,
-      } = this.particles
+        fromIndex,
+        toIndex,
+      } = particles
 
       ScrollTrigger.create({
         trigger: section,
@@ -172,56 +176,52 @@ export default class InitParticle {
         end: 'bottom top',
         scrub: true,
         onEnter: () => {
-          console.log("onEnter");
-          currentIndex = index;
-          nextIndex = Math.min(index + 1, maxIndex);
-          this.particles.updateTextures(currentIndex, nextIndex);
+          fromIndex = index;
+          toIndex = Math.min(index + 1, maxIndex);
+          particles.updateTextures(fromIndex, toIndex);
         },
         onEnterBack: () => {
-          console.log("back");
 
           if (index + 1 === maxIndex) return;
-          currentIndex = index;
-          nextIndex = index === 0 ? index + 1 : index - 1;
-          this.particles.updateTextures(currentIndex, nextIndex);
+          fromIndex = index;
+          toIndex = index === 0 ? index + 1 : index - 1;
+          particles.updateTextures(fromIndex, toIndex);
         },
         onUpdate: (self) => {
           const progress = self.progress;
-          this.particles.material.uniforms.uProgress.value = progress;
-
-          // 回転
-          const ease = gsap.parseEase("power2.inOut");
-          const easedProgress = ease(progress);
-          this.particles.points.rotation.y = easedProgress * Math.PI * 2;
+          particles.material.uniforms.uProgress.value = progress;
         },
         markers: true
       });
     });
 
-    // this._debug()
+    this._debug()
   }
 
   animate(time) {
+    const particles = this.particles
+
     const elapsedTime = this.clock.getElapsedTime();
-    this.particles.material.uniforms.uTime.value = elapsedTime;
+    particles.material.uniforms.uTime.value = elapsedTime;
   }
 
   _debug() {
+    const particles = this.particles
 
     const gui = new GUI({ width: 340 })
     gui
-      .add(this.particles.material.uniforms.uProgress, 'value')
+      .add(particles.material.uniforms.uProgress, 'value')
       .min(0)
       .max(1)
       .step(0.001)
       .name('uProgress')
 
-    this.particles.morph0 = () => { this.particles.morph(0) }
-    this.particles.morph1 = () => { this.particles.morph(1) }
-    this.particles.morph2 = () => { this.particles.morph(2) }
-    gui.add(this.particles, 'morph0')
-    gui.add(this.particles, 'morph1')
-    gui.add(this.particles, 'morph2')
+    particles.morph0 = () => { particles.morph(0) }
+    particles.morph1 = () => { particles.morph(1) }
+    particles.morph2 = () => { particles.morph(2) }
+    gui.add(particles, 'morph0')
+    gui.add(particles, 'morph1')
+    gui.add(particles, 'morph2')
   }
 
 }
