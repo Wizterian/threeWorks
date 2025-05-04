@@ -137,9 +137,12 @@ export default class ThreeScene {
   loadImages
     .init([
       // "glow.png",
-      "picture-5.png",
-      "picture-6.png",
-      "picture-7.jpg",
+      // "picture-5.png",
+      // "picture-6.png",
+      // "picture-7.jpg",
+      "picture-8.png",
+      "picture-9.png",
+      "picture-10.png",
     ])
     .then(images => init(images))
   const init = images => {

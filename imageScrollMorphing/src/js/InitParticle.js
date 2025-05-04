@@ -3,7 +3,7 @@ import {
   ShaderMaterial,
   Uniform,
   Vector2,
-  AdditiveBlending,
+  NormalBlending,
   Points,
   Float32BufferAttribute,
   Clock,
@@ -13,8 +13,6 @@ import fragmentShader from '../shaders/fragment.glsl'
 import GUI from 'lil-gui'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { max } from 'three/tsl'
-import { update } from 'three/examples/jsm/libs/tween.module.js'
 gsap.registerPlugin(ScrollTrigger)
 
 export default class InitParticle {
@@ -43,7 +41,8 @@ export default class InitParticle {
     particles.maxIndex = particles.images.length - 1;
 
     // Geometryを作成
-    particles.geometry = new PlaneGeometry(750, 750, 128 * 2, 128 * 2)
+    const enlargeRatio = 2
+    particles.geometry = new PlaneGeometry(750, 750, 128 * enlargeRatio, 128 * enlargeRatio)
     particles.geometry
       // .setIndex(null)
       .deleteAttribute('normal')
@@ -57,15 +56,15 @@ export default class InitParticle {
       // 画像ジオメトリの座標（ボジション）を生成
       const originalPosArray = position.array;
       const newPosArray = new Float32Array(particles.maxCount * 3);
-      const offset = 1//index * 100
+      const offset = index * 100
 
       for(let i = 0; i < particles.maxCount; i++) {
         const i3 = i * 3
 
         // 頂点数を超えた場合はランダムに所得した既存の頂点に設定
-        // const srcIndex = (i3 < originalPosArray.length)
-        //   ? i3
-        //   : Math.floor(position.count * Math.random()) * 3;
+        const srcIndex = (i3 < originalPosArray.length)
+          ? i3
+          : Math.floor(position.count * Math.random()) * 3;
 
         newPosArray[i3 + 0] = originalPosArray[i3 + 0] + offset;
         newPosArray[i3 + 1] = originalPosArray[i3 + 1] + offset;
@@ -88,7 +87,8 @@ export default class InitParticle {
     for(let i = 0; i < particles.maxCount; i++)
 	    sizesArray[i] = Math.random()
 
-    particles.geometry.setAttribute('aPositionTarget', particles.positions[1])
+    particles.geometry.setAttribute('position', particles.positions[particles.fromIndex])
+    particles.geometry.setAttribute('aPositionTarget', particles.positions[particles.toIndex])
     particles.geometry.setAttribute('aSize', new Float32BufferAttribute(sizesArray, 1))
 
     // Materialを作成
@@ -97,7 +97,7 @@ export default class InitParticle {
       fragmentShader: fragmentShader,
       uniforms:
       {
-          uSize: new Uniform(10),
+          uSize: new Uniform(5),
           uResolution: new Uniform(new Vector2(
             this.three.width * this.three.pixelRatio,
             this.three.height * this.three.pixelRatio
@@ -109,9 +109,10 @@ export default class InitParticle {
           uTime: new Uniform(0),
           uHeight: new Uniform(this.three.height),
       },
-      depthWrite: false,
+      transparent: true,      // ← これが超重要！
+      depthWrite: false,      // ← 重なりを正しく描画したいときは false
+      blending: NormalBlending, // または AdditiveBlending も可
     })
-    
 
     // Pointsを作成、シーンに追加
     particles.points = new Points(
@@ -150,10 +151,9 @@ export default class InitParticle {
     }
 
     particles.updateTextures = (fromIndex, toIndex) => {
+      const { images, positions, material, geometry } = particles;
       particles.fromIndex = fromIndex;
       particles.toIndex = toIndex;
-
-      const { images, positions, material, geometry } = particles;
 
       material.uniforms.uTextureFrom.value = images[particles.fromIndex];
       material.uniforms.uTextureTo.value = images[particles.toIndex];
@@ -172,16 +172,17 @@ export default class InitParticle {
 
       ScrollTrigger.create({
         trigger: section,
-        start: 'top top',
-        end: 'bottom top',
+        start: 'top+=5% top',
+        end: 'bottom-=5% top',
         scrub: true,
         onEnter: () => {
-          fromIndex = index;
+          console.log("onEnter: ", index);
+          fromIndex = index === maxIndex ? index - 1 : index;
           toIndex = Math.min(index + 1, maxIndex);
           particles.updateTextures(fromIndex, toIndex);
         },
         onEnterBack: () => {
-
+          console.log("onEnterBack: ", index);
           if (index + 1 === maxIndex) return;
           fromIndex = index;
           toIndex = index === 0 ? index + 1 : index - 1;
@@ -195,7 +196,7 @@ export default class InitParticle {
       });
     });
 
-    this._debug()
+    // this._debug()
   }
 
   animate(time) {

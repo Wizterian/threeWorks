@@ -4,7 +4,7 @@ uniform float uProgress;
 // uniform sampler2D uTextureTarget;
 
 varying vec2 vUv;
-varying vec3 vColor;
+varying vec4 vColor;
 // varying vec3 vColorTarget;
 
 void main()
@@ -18,7 +18,7 @@ void main()
     // vec4 colorA = texture2D(uTexture, vUv);
     // vec4 colorB = texture2D(uTextureTarget, vUv);
     // vec4 finalColor = mix(colorA, colorB, uProgress);
-    vec4 finalColor = vec4(vec3(vColor), 1.);
+    vec4 finalColor = vColor;//vec4(vec3(vColor), 1.);
 
     gl_FragColor = finalColor;
 
