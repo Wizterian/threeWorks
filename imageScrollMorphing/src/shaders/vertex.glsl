@@ -58,7 +58,7 @@ float visibility = sin(progress * 3.1415);
 // === 変形後の最終位置（揺らぎ係数を掛ける） ===
 vec3 twistedPosition = vec3(
     rotated.x + offsetX * visibility,
-    mixedPosition.y + offsetY * visibility, // ← ここ！
+    mixedPosition.y + offsetY * visibility,
     rotated.y
 );
 

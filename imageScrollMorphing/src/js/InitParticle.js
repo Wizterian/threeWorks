@@ -41,30 +41,29 @@ export default class InitParticle {
     particles.maxIndex = particles.images.length - 1;
 
     // Geometryを作成
-    const enlargeRatio = 2
-    particles.geometry = new PlaneGeometry(750, 750, 128 * enlargeRatio, 128 * enlargeRatio)
+    const enlargeRatio = 4
+    particles.geometry = new PlaneGeometry(750, 750, 64 * enlargeRatio, 64 * enlargeRatio)
     particles.geometry
-      // .setIndex(null)
+      .setIndex(null)
       .deleteAttribute('normal')
 
-    // 最大頂点数を取得・設定
+    // 最大頂点数を取得
     const position = particles.geometry.attributes.position
     particles.maxCount = position.count;
 
+    // 画像枚数分のトランジション用の座標を作成
     particles.images.map((iamge, index) => {
 
       // 画像ジオメトリの座標（ボジション）を生成
-      const originalPosArray = position.array;
-      const newPosArray = new Float32Array(particles.maxCount * 3);
+      const originalPosArray = position.array; // 元座標から生成
+      const newPosArray = new Float32Array(particles.maxCount * 3); // 新座標を格納する配列用意
       const offset = index * 100
 
       for(let i = 0; i < particles.maxCount; i++) {
         const i3 = i * 3
 
         // 頂点数を超えた場合はランダムに所得した既存の頂点に設定
-        const srcIndex = (i3 < originalPosArray.length)
-          ? i3
-          : Math.floor(position.count * Math.random()) * 3;
+        const srcIndex = (i3 < originalPosArray.length) ? i3 : Math.floor(position.count * Math.random()) * 3;
 
         newPosArray[i3 + 0] = originalPosArray[i3 + 0] + offset;
         newPosArray[i3 + 1] = originalPosArray[i3 + 1] + offset;
@@ -82,11 +81,12 @@ export default class InitParticle {
 
     })
 
-    // Attriuteを作成
+    // パーティクルサイズ用の配列を作成
     const sizesArray = new Float32Array(particles.maxCount)
     for(let i = 0; i < particles.maxCount; i++)
 	    sizesArray[i] = Math.random()
 
+    // Vertex shaderのAttriuteに設定
     particles.geometry.setAttribute('position', particles.positions[particles.fromIndex])
     particles.geometry.setAttribute('aPositionTarget', particles.positions[particles.toIndex])
     particles.geometry.setAttribute('aSize', new Float32BufferAttribute(sizesArray, 1))
@@ -97,7 +97,7 @@ export default class InitParticle {
       fragmentShader: fragmentShader,
       uniforms:
       {
-          uSize: new Uniform(5),
+          uSize: new Uniform(4),
           uResolution: new Uniform(new Vector2(
             this.three.width * this.three.pixelRatio,
             this.three.height * this.three.pixelRatio
@@ -196,7 +196,7 @@ export default class InitParticle {
       });
     });
 
-    // this._debug()
+    this._debug()
   }
 
   animate(time) {
