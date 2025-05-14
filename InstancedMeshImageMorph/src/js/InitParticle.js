@@ -20,18 +20,25 @@ export default class InitParticle {
     this.three = three
     this.clock = new Clock()
     this.imesh = null;
-    this.texture = null;
+    // 切り替え用
+    this.images = null;
+    this.currentIndex = 0;
+    this.nextIndex = 1;
+    this.material = null;
   }
 
   init(images) {
-    const texture = this.texture = images[0];
-    const size = 10;
-  
+    this.images = images;
+
+    /**************************
+     * Canvasのフィット
+     */
+
     // アスペクト比
-    const texAspect = texture.image.width / texture.image.height;
+    const texAspect = images[0].image.width / images[0].image.height;
     const screenAspect = window.innerWidth / window.innerHeight;
-  
-    // shortEdge は短辺として渡ってきている前提
+
+    // Containの挙動
     let width, height;
     if (screenAspect > texAspect) { // 画面のほうが横長な場合
       height = this.three.shortEdge; // 高さを基準にする
@@ -40,12 +47,13 @@ export default class InitParticle {
       width = this.three.shortEdge; // 画像の横を基準にする
       height = width / texAspect;
     }
-  
+
+    // パーティクル（タイル）のサイズ
+    const size = 10;
     const nx = Math.floor(width / size);
     const ny = Math.floor(height / size);
     const icount = nx * ny;
-  
-    const uvScale = new Vector2(1 / nx, 1 / ny); // 各粒子が表示すべき領域サイズ
+    const uvScale = new Vector2(1 / nx, 1 / ny); // 分割したテクスチャのUVスケール
 
     // 各粒子の左下をオフセットとして設定
     const uvOffsets = new Float32Array(icount * 2);
@@ -57,28 +65,39 @@ export default class InitParticle {
         index++;
       }
     }
-  
+
+    /**************************
+     * Instanced Meshの生成
+     */
+
+    // PlaneGeometryの生成
     const geometry = new PlaneGeometry(size, size);
     geometry.setAttribute('uvOffset', new InstancedBufferAttribute(uvOffsets, 2));
-  
-    const material = new ShaderMaterial({
+
+    // Materialの生成
+    this.material = new ShaderMaterial({
       vertexShader,
       fragmentShader,
       uniforms: {
-        uTexture: new Uniform(texture),
+        // uTexture: new Uniform(images[0]),
         uUvScale: new Uniform(uvScale),
+        uTextureFrom: new Uniform(this.images[0]),
+        uTextureTo: new Uniform(this.images[1]),
+        uProgress: new Uniform(0),
       },
       transparent: true,
     });
-  
-    const mesh = new InstancedMesh(geometry, material, icount);
-  
+
+    // Meshの生成
+    const mesh = new InstancedMesh(geometry, this.material, icount);
+
+    // Instanced Meshは移動、スケーリング、回転を都度指定が必須
     const dummy = new Object3D();
     index = 0;
     for (let i = 0; i < nx; i++) {
       for (let j = 0; j < ny; j++) {
         dummy.position.set(
-          -width / 2 + i * size + size / 2,
+          -width / 2 + i * size + size / 2, // 順番に並べて中心を基準にする
           -height / 2 + j * size + size / 2,
           0
         );
@@ -86,14 +105,13 @@ export default class InitParticle {
         mesh.setMatrixAt(index++, dummy.matrix);
       }
     }
-  
+
     this.three.scene.add(mesh);
     this.imesh = mesh;
   }
-  
-  resize() { 
-    console.log("resize");
-    // 旧インスタンスを削除
+
+  resize() {
+    // 旧インスタンスを削除（Instanced Meshは都度初期化が必須）
     if (this.imesh) {
       this.three.scene.remove(this.imesh);
       this.imesh.geometry.dispose();
@@ -102,12 +120,31 @@ export default class InitParticle {
     }
 
     // 再生成
-    this.init([this.texture]);
+    this.init(this.images);
+  }
+
+  updateTexture(index) {
+    this.nextIndex = index;
+    this.material.uniforms.uTextureFrom.value = this.images[this.currentIndex];
+    this.material.uniforms.uTextureTo.value = this.images[this.nextIndex];
+
+    gsap.fromTo(
+      this.material.uniforms.uProgress,
+      { value: 0 },
+      {
+        value: 1,
+        duration: 3,
+        ease: "power2.inOut",
+        onComplete: () => {
+          this.currentIndex = this.nextIndex;
+          this.material.uniforms.uProgress.value = 0;
+          this.material.uniforms.uTextureFrom.value = this.images[this.currentIndex];
+        }
+      }
+    );
   }
 
   animate(time) {
-    // const particles = this.particles
-
     // const elapsedTime = this.clock.getElapsedTime();
     // particles.material.uniforms.uTime.value = elapsedTime;
   }

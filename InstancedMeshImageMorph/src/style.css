@@ -20,6 +20,7 @@ body
 
 .section
 {
+    pointer-events: auto;
     display: flex;
     align-items: center;
     height: 100vh;
@@ -31,7 +32,6 @@ body
     padding-left: 10%;
     padding-right: 10%;
     box-sizing: content-box;
-    border: 1px solid #ffeded;
 }
 
 section:nth-child(odd)

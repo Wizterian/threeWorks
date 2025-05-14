@@ -6,15 +6,17 @@ import {
   Vector3,
   AxesHelper,
   Color,
+  LinearFilter,
+  ClampToEdgeWrapping,
 } from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import LoadImage from './js/common/LoadImage.js';
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+// import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import gsap from 'gsap'
 // import Lenis from 'lenis'
 import InitParticle from './js/InitParticle.js';
-gsap.registerPlugin(ScrollTrigger)
+// gsap.registerPlugin(ScrollTrigger)
 
 export default class ThreeScene {
   constructor() {
@@ -122,8 +124,8 @@ export default class ThreeScene {
 
   animate() {
     this.stats.begin();
-    this.stats.end();
     this.renderer.render(this.scene, this.camera)
+    this.stats.end();
   }
 }
 
@@ -140,23 +142,42 @@ export default class ThreeScene {
       "picture-9.png",
       "picture-10.png",
     ])
-    .then(images => init(images))
+    .then(images => {
+      images.forEach(tex => {
+        tex.minFilter = LinearFilter;
+        tex.magFilter = LinearFilter;
+        tex.wrapS = ClampToEdgeWrapping;
+        tex.wrapT = ClampToEdgeWrapping;
+      });
+      init(images)
+    })
   const init = images => {
+
+    // Initilization
     const threeScene = new ThreeScene()
     threeScene.init()
     const initParticle = new InitParticle(threeScene)
     initParticle.init(images)
 
+    // 一定時間でフェード切り替え
+    let index = 0;
+    setInterval(() => {
+      index = (index + 1) % images.length;
+      initParticle.updateTexture(index);
+    }, 4000);
+
+    // Resize
     window.addEventListener("resize", () => {
       threeScene.resize()
       initParticle.resize();
     })
 
+    // Animation
     // const lenis = new Lenis()
     const animate = () => {
       window.requestAnimationFrame(time => {
         // lenis.raf(time)
-        ScrollTrigger.update()
+        // ScrollTrigger.update()
 
         threeScene.animate()
         initParticle.animate()

@@ -3,11 +3,14 @@ attribute vec2 uvOffset;
 
 varying vec2 vUv;
 varying vec2 vUvOriginal;
+varying vec2 vUvOffset;
 
 void main() {
-  vUvOriginal = uv; // ← Three.js から自動で来るので再宣言しない！
+    vUvOriginal = uv;
+    vUvOffset = uvOffset;
 
-  vUv = uv * uUvScale + uvOffset;
+    //uv * uUvScale によって、元の (0〜1) UV を画像内の小さい「1粒分」にスケーリングします。
+    vUv = uv * uUvScale + uvOffset;
 
-  gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
 }

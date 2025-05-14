@@ -1,17 +1,36 @@
-uniform sampler2D uTexture;
+
+uniform sampler2D uTextureFrom;
+uniform sampler2D uTextureTo;
+uniform float uProgress;
+uniform vec2 uUvScale;
+
 varying vec2 vUv;
-varying vec2 vUvOriginal;
+
+// // 分割線
+// varying vec2 vUvOriginal;
+// varying vec2 vUvOffset;
+
 
 void main() {
-  vec4 color = texture2D(uTexture, vUv);
 
-  float lineWidth = 0.1;
+    // 画像切替
+    vec4 fromColor = texture2D(uTextureFrom, vUv);
+    vec4 toColor = texture2D(uTextureTo, vUv);
 
-  float borderX = step(1.0 - lineWidth, vUvOriginal.x);
-  float borderY = step(1.0 - lineWidth, vUvOriginal.y);
-  float border = max(borderX, borderY);
+    // エッジ防止処理
+    vec3 fromRGB = fromColor.rgb * fromColor.a; 
+    vec3 toRGB = toColor.rgb * toColor.a;
+    vec4 color = vec4(
+        mix(fromRGB, toRGB, uProgress), // RGB
+        mix(fromColor.a, toColor.a, uProgress) // Alpha
+    );
 
-  color.rgb *= 1.0 - border;
+    // // 分割線
+    // float lineWidth = 0.1;
+    // float borderX = step(1.0 - lineWidth, vUvOriginal.x);
+    // float borderY = step(1.0 - lineWidth, vUvOriginal.y);
+    // float border = max(borderX, borderY);
+    // color.rgb *= 1.0 - border;
 
-  gl_FragColor = color;
+    gl_FragColor = color;
 }
