@@ -5,7 +5,9 @@ import {
   Vector2,
   InstancedMesh,
   InstancedBufferAttribute,
-  Object3D,
+  Vector3,
+  Matrix4,
+  Quaternion,
   Clock,
 } from 'three'
 import vertexShader from '../shaders/vertex.glsl'
@@ -22,9 +24,13 @@ export default class InitParticle {
     this.imesh = null;
     // 切り替え用
     this.images = null;
-    this.currentIndex = 0;
-    this.nextIndex = 1;
     this.material = null;
+    this.allPositions = [];
+    this.tempMatrix = new Matrix4(); // 座標・回転・スケールを管理
+    this.tempPos = new Vector3(); // 座標移動用
+    this.tempQuat = new Quaternion(); // 回転なし
+    this.tempScale = new Vector3(1, 1, 1); // スケールなし
+    this.icount = 0;
   }
 
   init(images) {
@@ -48,15 +54,15 @@ export default class InitParticle {
       height = width / texAspect;
     }
 
-    // パーティクル（タイル）のサイズ
+    // パーティクル（タイル）のサイズ、分割数、UVのスケールを設定
     const size = 10;
     const nx = Math.floor(width / size);
     const ny = Math.floor(height / size);
-    const icount = nx * ny;
+    this.icount = nx * ny;
     const uvScale = new Vector2(1 / nx, 1 / ny); // 分割したテクスチャのUVスケール
 
     // 各粒子の左下をオフセットとして設定
-    const uvOffsets = new Float32Array(icount * 2);
+    const uvOffsets = new Float32Array(this.icount * 2);
     let index = 0;
     for (let i = 0; i < nx; i++) {
       for (let j = 0; j < ny; j++) {
@@ -72,6 +78,8 @@ export default class InitParticle {
 
     // PlaneGeometryの生成
     const geometry = new PlaneGeometry(size, size);
+
+    // 属性を追加
     geometry.setAttribute('uvOffset', new InstancedBufferAttribute(uvOffsets, 2));
 
     // Materialの生成
@@ -79,7 +87,6 @@ export default class InitParticle {
       vertexShader,
       fragmentShader,
       uniforms: {
-        // uTexture: new Uniform(images[0]),
         uUvScale: new Uniform(uvScale),
         uTextureFrom: new Uniform(this.images[0]),
         uTextureTo: new Uniform(this.images[1]),
@@ -89,25 +96,45 @@ export default class InitParticle {
     });
 
     // Meshの生成
-    const mesh = new InstancedMesh(geometry, this.material, icount);
+    const mesh = new InstancedMesh(geometry, this.material, this.icount);
 
-    // Instanced Meshは移動、スケーリング、回転を都度指定が必須
-    const dummy = new Object3D();
-    index = 0;
-    for (let i = 0; i < nx; i++) {
-      for (let j = 0; j < ny; j++) {
-        dummy.position.set(
-          -width / 2 + i * size + size / 2, // 順番に並べて中心を基準にする
-          -height / 2 + j * size + size / 2,
-          0
-        );
-        dummy.updateMatrix();
-        mesh.setMatrixAt(index++, dummy.matrix);
+    /**************************
+     * Instanced Meshの移動座標生成
+     */
+
+    const allPositions = [];
+
+    this.images.forEach((image, imageIndex) => {
+      const position = [];
+
+      let offsetX = 0;
+      const mod = imageIndex % 3;
+      if (mod === 1) offsetX = +300;
+      else if (mod === 2) offsetX = -300;
+
+      for (let i = 0; i < nx; i++) {
+        for (let j = 0; j < ny; j++) {
+          const x = -width / 2 + i * size + size / 2 + offsetX;
+          const y = -height / 2 + j * size + size / 2;
+          const z = 0;
+
+          position.push(new Vector3(x, y, z));
+        }
       }
-    }
+
+      allPositions.push(position);
+    });
+    this.allPositions = allPositions;
 
     this.three.scene.add(mesh);
     this.imesh = mesh;
+
+    for (let i = 0; i < this.icount; i++) {
+      const pos = this.allPositions[0][i];
+      this.tempMatrix.compose(pos, this.tempQuat, this.tempScale);
+      this.imesh.setMatrixAt(i, this.tempMatrix);
+    }
+    this.imesh.instanceMatrix.needsUpdate = true;
   }
 
   resize() {
@@ -123,10 +150,9 @@ export default class InitParticle {
     this.init(this.images);
   }
 
-  updateTexture(index) {
-    this.nextIndex = index;
-    this.material.uniforms.uTextureFrom.value = this.images[this.currentIndex];
-    this.material.uniforms.uTextureTo.value = this.images[this.nextIndex];
+  updateTexture(fromIndex, toIndex) {
+    this.material.uniforms.uTextureFrom.value = this.images[fromIndex];
+    this.material.uniforms.uTextureTo.value = this.images[toIndex];
 
     gsap.fromTo(
       this.material.uniforms.uProgress,
@@ -136,12 +162,41 @@ export default class InitParticle {
         duration: 3,
         ease: "power2.inOut",
         onComplete: () => {
-          this.currentIndex = this.nextIndex;
           this.material.uniforms.uProgress.value = 0;
-          this.material.uniforms.uTextureFrom.value = this.images[this.currentIndex];
+          this.material.uniforms.uTextureFrom.value = this.images[toIndex];
         }
       }
     );
+  }
+
+  // 座標管理
+  updateTransition(fromIndex, toIndex) {
+    const positionsFrom = this.allPositions[fromIndex];
+    const positionsTo = this.allPositions[toIndex];
+
+    const progressObj = { progress: 0 };
+
+    gsap.to(progressObj, {
+      progress: 1,
+      duration: 2,
+      ease: "power2.inOut",
+      onUpdate: () => {
+        const t = progressObj.progress;
+
+        for (let i = 0; i < this.icount; i++) {
+          this.tempPos.lerpVectors(positionsFrom[i], positionsTo[i], t);
+          this.tempMatrix.compose(this.tempPos, this.tempQuat, this.tempScale);
+          this.imesh.setMatrixAt(i, this.tempMatrix);
+        }
+
+        this.imesh.instanceMatrix.needsUpdate = true;
+      }
+    });
+  }
+
+  applyTransition(fromIndex, toIndex) {
+    this.updateTexture(fromIndex, toIndex);
+    this.updateTransition(fromIndex, toIndex);
   }
 
   animate(time) {
