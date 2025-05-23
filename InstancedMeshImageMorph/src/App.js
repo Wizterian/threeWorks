@@ -161,12 +161,13 @@ export default class ThreeScene {
 
     // 一定時間でフェード切り替え
     let index = 0;
+    const intervalTime = 3000;
     setInterval(() => {
       const from = index;
       const to = (index + 1) % images.length;
-      initParticle.applyTransition(from, to);
+      initParticle.applyTransition(from, to, intervalTime);
       index = to;
-    }, 3000);
+    }, intervalTime);
 
     // Resize
     window.addEventListener("resize", () => {

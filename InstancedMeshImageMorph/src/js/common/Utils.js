@@ -74,3 +74,25 @@ export function randomBothSides () {
   const tmpPosX = Math.floor((randomSideX * this.screenW) - this.windowHalfX);
   return tmpPosX;
 };
+
+/****************************************
+疑似ランダム生成関数
+*/
+
+export function fract(x) {
+  return x - Math.floor(x);
+}
+
+export function pseudoRandom2D(x, y) {
+  const dot = x * 39.3467 + y * 11.135;
+  return fract(Math.sin(dot) * 32142.239);
+}
+
+export function smoothstep(edge0, edge1, x) {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+export function clamp(x, min, max) {
+  return Math.min(Math.max(x, min), max);
+}
