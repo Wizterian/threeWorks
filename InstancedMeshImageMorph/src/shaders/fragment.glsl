@@ -17,12 +17,14 @@ void main() {
     vec4 fromColor = texture2D(uTextureFrom, vUv);
     vec4 toColor = texture2D(uTextureTo, vUv);
 
+    float fadeProgress = smoothstep(0.0, 0.5, uProgress); // 画像だけは早めにフェード切替
+
     // エッジ防止処理
     vec3 fromRGB = fromColor.rgb * fromColor.a; 
     vec3 toRGB = toColor.rgb * toColor.a;
     vec4 color = vec4(
-        mix(fromRGB, toRGB, uProgress), // RGB
-        mix(fromColor.a, toColor.a, uProgress) // Alpha
+        mix(fromRGB, toRGB, fadeProgress), // RGB
+        mix(fromColor.a, toColor.a, fadeProgress) // Alpha
     );
 
     // // 分割線
