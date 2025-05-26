@@ -1,6 +1,7 @@
 uniform vec2 uUvScale;
 
 attribute vec2 uvOffset;
+// attribute vec3 aFromPosition;
 
 varying vec2 vUv;
 
@@ -17,6 +18,7 @@ void main() {
     vUv = uv * uUvScale + uvOffset;
 
     gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+
 }
 
 // uniform vec2 uUvScale;

@@ -188,60 +188,60 @@ export default class InitParticle {
         duration: intervalTime / 1000,
         ease: "power4.inOut",
         onUpdate: () => {
-          const t = this.material.uniforms.uProgress.value;
-          const duration = 0.3; // 全体の長さ1に対するDelayの長さ
+    //       const t = this.material.uniforms.uProgress.value;
+    //       const duration = 0.3; // 全体の長さ1に対するDelayの長さ
 
-          for (let i = 0; i < this.icount; i++) {
+    //       for (let i = 0; i < this.icount; i++) {
 
-            // Y軸を正規化
-            const fromY = positionsFrom[i].y; // Delay開始時のY座標
-            const halfHeight = this.three.shortEdge / 2;
-            const normalizedY = (fromY + halfHeight) / (2 * halfHeight); // Y座標を正規化
-            const centerWeight = 3.0;
-            // let delay = (1.0 - duration) * (1.0 - normalizedY); // 上からdelay
-            let delay = (1.0 - duration) * Math.pow(1.0 - normalizedY, centerWeight);
-            delay = Math.min(Math.max(delay, 0), 1 - duration);
+    //         // Y軸を正規化
+    //         const fromY = positionsFrom[i].y; // Delay開始時のY座標
+    //         const halfHeight = this.three.shortEdge / 2;
+    //         const normalizedY = (fromY + halfHeight) / (2 * halfHeight); // Y座標を正規化
+    //         const centerWeight = 3.0;
+    //         // let delay = (1.0 - duration) * (1.0 - normalizedY); // 上からdelay
+    //         let delay = (1.0 - duration) * Math.pow(1.0 - normalizedY, centerWeight);
+    //         delay = Math.min(Math.max(delay, 0), 1 - duration);
 
-            const end = delay + duration;
-            const localProgress = smoothstep(delay, end, t); // 個別進行度
-            const visibility = Math.sin(localProgress * Math.PI); // ばらけに使用
+    //         const end = delay + duration;
+    //         const localProgress = smoothstep(delay, end, t); // 個別進行度
+    //         const visibility = Math.sin(localProgress * Math.PI); // ばらけに使用
 
-            // 基本の線形補間（遷移中の基準になる座標）
-            this.tempPos.lerpVectors(positionsFrom[i], positionsTo[i], localProgress);
+    //         // 基本の線形補間（遷移中の基準になる座標）
+    //         this.tempPos.lerpVectors(positionsFrom[i], positionsTo[i], localProgress);
 
-            // ねじれの進行度に応じた回転角
-            const angle = localProgress * angleMax;
-            const cosA = Math.cos(angle);
-            const sinA = Math.sin(angle);
-            const center = this.imageCenters[fromIndex]; // 回転の中心座標
+    //         // ねじれの進行度に応じた回転角
+    //         const angle = localProgress * angleMax;
+    //         const cosA = Math.cos(angle);
+    //         const sinA = Math.sin(angle);
+    //         const center = this.imageCenters[fromIndex]; // 回転の中心座標
 
-            // 2D回転行列はグローバルの原点を元に計算されるので原点に移動
-            const relativeX = this.tempPos.x - center.x;
-            const relativeZ = this.tempPos.z - center.z;
+    //         // 2D回転行列はグローバルの原点を元に計算されるので原点に移動
+    //         const relativeX = this.tempPos.x - center.x;
+    //         const relativeZ = this.tempPos.z - center.z;
 
-            // 中心を基準に回転（Y軸周り、時計回りの2D回転行列野の公式）
-            const rotatedX = relativeX * cosA - relativeZ * sinA;
-            const rotatedZ = relativeX * sinA + relativeZ * cosA;
+    //         // 中心を基準に回転（Y軸周り、時計回りの2D回転行列野の公式）
+    //         const rotatedX = relativeX * cosA - relativeZ * sinA;
+    //         const rotatedZ = relativeX * sinA + relativeZ * cosA;
 
-            // ばらけさせる
-            const randX = pseudoRandom2D(this.tempPos.x, this.tempPos.y);
-            const randY = pseudoRandom2D(this.tempPos.y, this.tempPos.x);
-            const randZ = pseudoRandom2D(this.tempPos.z, this.tempPos.y);
-            const strength = 300.0;
-            const offsetX = (randX - 0.5) * 2 * strength * visibility;
-            const offsetY = (randY - 0.5) * 2 * strength * visibility;
-            const offsetZ = (randZ - 0.5) * 2 * strength * visibility;
+    //         // ばらけさせる
+    //         const randX = pseudoRandom2D(this.tempPos.x, this.tempPos.y);
+    //         const randY = pseudoRandom2D(this.tempPos.y, this.tempPos.x);
+    //         const randZ = pseudoRandom2D(this.tempPos.z, this.tempPos.y);
+    //         const strength = 300.0;
+    //         const offsetX = (randX - 0.5) * 2 * strength * visibility;
+    //         const offsetY = (randY - 0.5) * 2 * strength * visibility;
+    //         const offsetZ = (randZ - 0.5) * 2 * strength * visibility;
 
-            // 元の中心に戻す
-            this.tempPos.x = rotatedX + center.x + offsetX;
-            this.tempPos.y = this.tempPos.y + offsetY;
-            this.tempPos.z = rotatedZ + center.z + offsetZ;
+    //         // 元の中心に戻す
+    //         this.tempPos.x = rotatedX + center.x + offsetX;
+    //         this.tempPos.y = this.tempPos.y + offsetY;
+    //         this.tempPos.z = rotatedZ + center.z + offsetZ;
 
-            this.tempMatrix.compose(this.tempPos, this.tempQuat, this.tempScale);
-            this.imesh.setMatrixAt(i, this.tempMatrix);
-          }
+    //         this.tempMatrix.compose(this.tempPos, this.tempQuat, this.tempScale);
+    //         this.imesh.setMatrixAt(i, this.tempMatrix);
+    //       }
 
-          this.imesh.instanceMatrix.needsUpdate = true;
+    //       this.imesh.instanceMatrix.needsUpdate = true;
         },
         onComplete: () => {
           // フェードの設定
