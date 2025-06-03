@@ -79,6 +79,10 @@ export function randomBothSides () {
 疑似ランダム生成関数
 */
 
+export function lerp(a, b, x) {
+  return a + x * (b - a);
+}
+
 export function fract(x) {
   return x - Math.floor(x);
 }

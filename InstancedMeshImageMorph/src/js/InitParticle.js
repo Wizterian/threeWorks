@@ -14,6 +14,7 @@ import {
 import {
   pseudoRandom2D,
   smoothstep,
+  lerp,
 } from './common/Utils.js';
 import vertexShader from '../shaders/vertex.glsl'
 import fragmentShader from '../shaders/fragment.glsl'
@@ -28,18 +29,17 @@ export default class InitParticle {
     this.clock = new Clock()
     this.imesh = null;
     this.icount = 0; // 分割数
-    // 切り替え用
-    this.images = null;
-    this.material = null;
-    this.allPositions = [];
-    // 座標・回転・スケールを管理
-    // this.tempMatrix = new Matrix4(); // 座標・回転・スケールを管理
-    // this.tempPos = new Vector3(); // 座標移動用
-    // this.tempQuat = new Quaternion(); // 回転なし
-    // this.tempScale = new Vector3(1, 1, 1); // スケールなし
-    this.imageCenters = []; // 画像の中心座標を格納
 
-    // this.mouseCoord = {x: 0, y: 0} // Tilt
+    this.images = null;
+    this.material = null; // transition & tilt
+    this.allPositions = []; // 3 positions for each image
+
+    // for tilt
+    this.targetMouse = new Vector2();
+    this.easedMouse = new Vector2();
+
+    // --- 管理用インデックス ---
+    this.imageIndex = 0; // 現在表示中の画像インデックス
   }
 
   init(images) {
@@ -109,8 +109,7 @@ export default class InitParticle {
         uProgress: new Uniform(0),
         uHalfHeight: new Uniform(window.innerHeight * .5),
         uHalfWidth: new Uniform(window.innerWidth * .5),
-        // uMouse: new Uniform(new Vector2(0, 0)), // Tilt
-        // uImageCenter: new Uniform(new Vector3(0, 0, 0)), // Tilt
+        uMouse: new Uniform(new Vector2(0, 0)), // Tilt
       },
       transparent: true,
       side: DoubleSide,
@@ -150,7 +149,6 @@ export default class InitParticle {
       }
 
       allPositions.push(position);
-      this.imageCenters.push(new Vector3(offsetX, 0, 0));
     });
     this.allPositions = allPositions;
 
@@ -159,17 +157,15 @@ export default class InitParticle {
     this.imesh = mesh;
 
     this.applyTransition(0, 1, 0, true);
-    // this.mouseAction();
+    this.mouseAction();
   }
 
-  // mouseAction() {
-  //   window.addEventListener('mousemove', (e) => {
-  //     const centerX = window.innerWidth / 2;
-  //     const centerY = window.innerHeight / 2;
-  //     this.mouseCoord.x = (e.clientX - centerX) / centerX; // range: -1 to 1
-  //     this.mouseCoord.y = (e.clientY - centerY) / centerY; // range: -1 to 1
-  //   });
-  // }
+  mouseAction() {
+    window.addEventListener('mousemove', (e) => {
+      this.targetMouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      this.targetMouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
+  }
 
   resize() {
     // 旧インスタンスを削除（Instanced Meshは都度初期化が必須）
@@ -187,14 +183,10 @@ export default class InitParticle {
   applyTransition(fromIndex, toIndex, intervalTime, skipAnimation = false) {
     // リセット
     this.material.uniforms.uProgress.value = 0; // 進行度
-    // this.material.uniforms.uImageCenter.value = this.imageCenters[fromIndex]; // Tilt
-
 
     // フェードの設定
     this.material.uniforms.uTextureFrom.value = this.images[fromIndex];
     this.material.uniforms.uTextureTo.value = this.images[toIndex];
-
-    // this.material.uniforms.uImageCenter.value = this.imageCenters[toIndex]; // Tilt
 
     this.imesh.geometry.setAttribute(
       'aFromPosition',
@@ -208,6 +200,7 @@ export default class InitParticle {
     // init直後はtransitionしない
     if (skipAnimation) {
       this.material.uniforms.uProgress.value = 0;
+      this.imageIndex = toIndex; // 初期化時にもインデックス更新
       return;
     }
 
@@ -223,74 +216,17 @@ export default class InitParticle {
         value: 1,
         duration: intervalTime / 1000,
         ease: "power4.inOut",
-        onUpdate: () => {
-    //       const t = this.material.uniforms.uProgress.value;
-    //       const duration = 0.3; // 全体の長さ1に対するDelayの長さ
-
-    //       for (let i = 0; i < this.icount; i++) {
-
-    //         // Y軸を正規化
-    //         const fromY = positionsFrom[i].y; // Delay開始時のY座標
-    //         const halfHeight = this.three.shortEdge / 2;
-    //         const normalizedY = (fromY + halfHeight) / (2 * halfHeight); // Y座標を正規化
-    //         const centerWeight = 3.0;
-    //         // let delay = (1.0 - duration) * (1.0 - normalizedY); // 上からdelay
-    //         let delay = (1.0 - duration) * Math.pow(1.0 - normalizedY, centerWeight);
-    //         delay = Math.min(Math.max(delay, 0), 1 - duration);
-
-    //         const end = delay + duration;
-    //         const localProgress = smoothstep(delay, end, t); // 個別進行度
-    //         const visibility = Math.sin(localProgress * Math.PI); // ばらけに使用
-
-    //         // 基本の線形補間（遷移中の基準になる座標）
-    //         this.tempPos.lerpVectors(positionsFrom[i], positionsTo[i], localProgress);
-
-    //         // ねじれの進行度に応じた回転角
-    //         const angle = localProgress * angleMax;
-    //         const cosA = Math.cos(angle);
-    //         const sinA = Math.sin(angle);
-    //         const center = this.imageCenters[fromIndex]; // 回転の中心座標
-
-    //         // 2D回転行列はグローバルの原点を元に計算されるので原点に移動
-    //         const relativeX = this.tempPos.x - center.x;
-    //         const relativeZ = this.tempPos.z - center.z;
-
-    //         // 中心を基準に回転（Y軸周り、時計回りの2D回転行列野の公式）
-    //         const rotatedX = relativeX * cosA - relativeZ * sinA;
-    //         const rotatedZ = relativeX * sinA + relativeZ * cosA;
-
-    //         // ばらけさせる
-    //         const randX = pseudoRandom2D(this.tempPos.x, this.tempPos.y);
-    //         const randY = pseudoRandom2D(this.tempPos.y, this.tempPos.x);
-    //         const randZ = pseudoRandom2D(this.tempPos.z, this.tempPos.y);
-    //         const strength = 300.0;
-    //         const offsetX = (randX - 0.5) * 2 * strength * visibility;
-    //         const offsetY = (randY - 0.5) * 2 * strength * visibility;
-    //         const offsetZ = (randZ - 0.5) * 2 * strength * visibility;
-
-    //         // 元の中心に戻す
-    //         this.tempPos.x = rotatedX + center.x + offsetX;
-    //         this.tempPos.y = this.tempPos.y + offsetY;
-    //         this.tempPos.z = rotatedZ + center.z + offsetZ;
-
-    //         this.tempMatrix.compose(this.tempPos, this.tempQuat, this.tempScale);
-    //         this.imesh.setMatrixAt(i, this.tempMatrix);
-    //       }
-
-    //       this.imesh.instanceMatrix.needsUpdate = true;
-        },
         onComplete: () => {
           // フェードの設定
           this.material.uniforms.uTextureFrom.value = this.images[toIndex];
+          this.imageIndex = toIndex; // 完了時に次の画像インデックスを保持
         }
       }
     );
   }
 
   animate(time) {
-    // const elapsedTime = this.clock.getElapsedTime();
-    // particles.material.uniforms.uTime.value = elapsedTime;
-
-    // this.material.uniforms.uMouse.value.set(this.mouseCoord.x, this.mouseCoord.y); // Tilt
+    this.easedMouse.lerp(this.targetMouse, 0.1);
+    this.material.uniforms.uMouse.value.copy(this.easedMouse);
   }
 }

@@ -1,6 +1,6 @@
 uniform vec2 uUvScale;
 uniform float uProgress;
-// uniform vec2 uMouse; // Tilt
+uniform vec2 uMouse; // Tilt
 // uniform vec3 uImageCenter; // Tilt
 uniform float uHalfHeight;
 uniform float uHalfWidth;
@@ -48,7 +48,7 @@ void main() {
     float randZ = fract(sin(dot(vec2(aFromPosition.x + aFromPosition.y, aFromPosition.y - aFromPosition.x), vec2(91.135, 15.719))) * 15731.239);
 
     float scatterStrength = 500.0;
-    float visibility = sin(localProgress * 3.1415); // トランジション中だけ揺らぎを出す定番係数（0→1→0）
+    float visibility = pow(sin(localProgress * 3.1415), 2.0); // トランジション中だけ揺らぎを出す定番係数（0→1→0）* イージング強度
 
     float offsetX = (randX - 0.5) * 2.0 * scatterStrength;
     float offsetY = (randY - 0.5) * 2.0 * scatterStrength;
@@ -69,7 +69,34 @@ void main() {
         rotated.y
     );
 
-    vec3 worldPosition = twistedPosition + position; // position（planeの相対座標）+ 回転・遷移中のワールド（絶対）座標
+
+    // --- チルト回転（マウスによる視差効果） ---
+    float tiltStrength = 0.2; // チルト強度
+    float tiltEase = 1.;//sin(uProgress * 3.1415); // easing（in-out）
+
+    float tiltX = uMouse.y * tiltStrength * tiltEase;
+    float tiltY = -uMouse.x * tiltStrength * tiltEase;
+
+    mat3 tiltRotX = mat3(
+        1.0, 0.0, 0.0,
+        0.0, cos(tiltX), -sin(tiltX),
+        0.0, sin(tiltX), cos(tiltX)
+    );
+
+    mat3 tiltRotY = mat3(
+        cos(tiltY), 0.0, sin(tiltY),
+        0.0, 1.0, 0.0,
+        -sin(tiltY), 0.0, cos(tiltY)
+    );
+
+    // --- シーン中心を回転中心としてチルトを適用 ---
+    vec3 centered = twistedPosition; // scene centerが(0,0,0)の前提
+    vec3 tilted = tiltRotY * (tiltRotX * centered);
+
+    vec3 worldPosition = tilted + position; // 最終ワールド座標
+
+
+    // vec3 worldPosition = twistedPosition + position; // position（planeの相対座標）+ 回転・遷移中のワールド（絶対）座標
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
 }
