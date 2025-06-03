@@ -31,7 +31,7 @@ void main() {
     float normalizedY = (dy + uHalfHeight) / (2.0 * uHalfHeight);
 
     // --- Delay & Local Progress ---
-    float duration = 0.6;
+    float duration = 0.4;
     float delay = (1.0 - duration) * ((1.0 - normalizedX) * 0.5 + (1.0 - normalizedY) * 0.5); // delay starts move from top-right to bottom-left
     delay = clamp(delay, 0.0, 1.0 - duration); // rounds a value from 0 to 1, 1.0 - duration is overall animation length
     float end = delay + duration; // animation length
@@ -39,14 +39,37 @@ void main() {
     float localProgress = smoothstep(delay, end, uProgress); // make the range 0 to 1
 
     // --- Interpolation ---
-    vec3 interpolated = mix(aFromPosition, aToPosition, localProgress);
+    vec3 basePosition = mix(aFromPosition, aToPosition, localProgress); // interpolated base position (instanced center)
 
-    // --- Twist Effect ---
-    float angle = localProgress * radians(360.0);
-    mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)); // rotation matrix around Y axis
-    vec2 rotated = rot * vec2(interpolated.x, interpolated.z);
+    // --- 見た目のばらけ（ランダム揺らぎ） ---
+    // aFromPositionベースで一意の乱数を生成（0.0〜1.0）
+    float randX = fract(sin(dot(vec2(aFromPosition.x, aFromPosition.y), vec2(12.9898, 78.233))) * 43758.5453);
+    float randY = fract(sin(dot(vec2(aFromPosition.y, aFromPosition.x), vec2(39.3467, 11.135))) * 32142.239);
+    float randZ = fract(sin(dot(vec2(aFromPosition.x + aFromPosition.y, aFromPosition.y - aFromPosition.x), vec2(91.135, 15.719))) * 15731.239);
 
-    vec3 worldPosition = vec3(rotated.x, interpolated.y, rotated.y) + position; // position（planeの相対座標）+ 回転・遷移中のワールド（絶対）座標
+    float scatterStrength = 500.0;
+    float visibility = sin(localProgress * 3.1415); // トランジション中だけ揺らぎを出す定番係数（0→1→0）
+
+    float offsetX = (randX - 0.5) * 2.0 * scatterStrength;
+    float offsetY = (randY - 0.5) * 2.0 * scatterStrength;
+    float offsetZ = (randZ - 0.5) * 2.0 * scatterStrength;
+
+    // --- ばらけを先に加える（ベース位置に適用） ---
+    vec3 scattered = basePosition + vec3(offsetX, offsetY, offsetZ) * visibility;
+
+    // --- Y軸回転（ねじれ） ---
+    float angle = localProgress * radians(360.0 * 2.); // 進行度に応じた回転角度（0〜360°）
+    mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)); // 回転マトリクス
+    vec2 rotated = rot * vec2(scattered.x, scattered.z); // XZ座標を回転
+
+    // --- 変形後の最終位置（ばらけ＋ねじれ） ---
+    vec3 twistedPosition = vec3(
+        rotated.x,
+        scattered.y,
+        rotated.y
+    );
+
+    vec3 worldPosition = twistedPosition + position; // position（planeの相対座標）+ 回転・遷移中のワールド（絶対）座標
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
 }
