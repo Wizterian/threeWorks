@@ -69,7 +69,6 @@ void main() {
         rotated.y
     );
 
-
     // --- チルト回転（マウスによる視差効果） ---
     float tiltStrength = 0.2; // チルト強度
     float tiltEase = 1.;//sin(uProgress * 3.1415); // easing（in-out）

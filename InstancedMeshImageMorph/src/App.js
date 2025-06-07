@@ -159,16 +159,6 @@ export default class ThreeScene {
     const initParticle = new InitParticle(threeScene)
     initParticle.init(images)
 
-    // 一定時間でフェード切り替え
-    let index = 0;
-    const intervalTime = 3000;
-    setInterval(() => {
-      const from = index;
-      const to = (index + 1) % images.length;
-      initParticle.applyTransition(from, to, intervalTime);
-      index = to;
-    }, intervalTime);
-
     // Resize
     window.addEventListener("resize", () => {
       threeScene.resize()

@@ -5,20 +5,10 @@ import {
   Vector2,
   InstancedMesh,
   InstancedBufferAttribute,
-  Vector3,
-  Matrix4,
-  Quaternion,
-  Clock,
   DoubleSide,
 } from 'three'
-import {
-  pseudoRandom2D,
-  smoothstep,
-  lerp,
-} from './common/Utils.js';
 import vertexShader from '../shaders/vertex.glsl'
 import fragmentShader from '../shaders/fragment.glsl'
-import GUI from 'lil-gui'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 gsap.registerPlugin(ScrollTrigger)
@@ -26,7 +16,6 @@ gsap.registerPlugin(ScrollTrigger)
 export default class InitParticle {
   constructor(three) {
     this.three = three
-    this.clock = new Clock()
     this.imesh = null;
     this.icount = 0; // 分割数
 
@@ -38,8 +27,10 @@ export default class InitParticle {
     this.targetMouse = new Vector2();
     this.easedMouse = new Vector2();
 
-    // --- 管理用インデックス ---
-    this.imageIndex = 0; // 現在表示中の画像インデックス
+    // for transition
+    this.imageIndex = 0;
+    this.intervalTime = 3;
+    this.gsapTimer = null;
   }
 
   init(images) {
@@ -58,9 +49,17 @@ export default class InitParticle {
     if (screenAspect > texAspect) { // ウィンドウが横長な場合
       height = this.three.shortEdge; // 高さを基準にする
       width = height * texAspect;
+
+      // // 横長 → 横をfitさせる → 縦は見切れる
+      // width = window.innerWidth;
+      // height = width / texAspect;
     } else { // ウィンドウが縦長な場合
       width = this.three.shortEdge; // 画像の横を基準にする
       height = width / texAspect;
+
+      // // 縦長 → 縦をfitさせる → 横は見切れる
+      // height = window.innerHeight;
+      // width = height * texAspect;
     }
 
     /**************************
@@ -75,8 +74,7 @@ export default class InitParticle {
 
     // 分割に合わせて画像サイズをスケーリング
     const uvScale = new Vector2(1 / nx, 1 / ny);
-      // 1分割内の1枚の画像の表示範囲（左下基準）
-      // uvの理解について https://chatgpt.com/share/682ad72e-1db0-8010-b2c1-66063b09be3c
+      // uvの理解（https://chatgpt.com/share/682ad72e-1db0-8010-b2c1-66063b09be3c）
 
     // パーティクル（タイル）の位置に合わせてオフセット
     const uvOffsets = new Float32Array(this.icount * 2);
@@ -94,29 +92,11 @@ export default class InitParticle {
      * Instanced Meshの生成
      */
 
-    // PlaneGeometryの生成
     const geometry = new PlaneGeometry(size, size);
-    geometry.setAttribute('uvOffset', new InstancedBufferAttribute(uvOffsets, 2)); // オフセットは固有なので属性に追加
-
-    // Materialの生成
-    this.material = new ShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms: {
-        uUvScale: new Uniform(uvScale),
-        uTextureFrom: new Uniform(this.images[0]),
-        uTextureTo: new Uniform(this.images[1]),
-        uProgress: new Uniform(0),
-        uHalfHeight: new Uniform(window.innerHeight * .5),
-        uHalfWidth: new Uniform(window.innerWidth * .5),
-        uMouse: new Uniform(new Vector2(0, 0)), // Tilt
-      },
-      transparent: true,
-      side: DoubleSide,
-    });
+    geometry.setAttribute('uvOffset', new InstancedBufferAttribute(uvOffsets, 2)); // オフセットは固有なので属性に
 
     // Meshの生成
-    const mesh = new InstancedMesh(geometry, this.material, this.icount);
+    const mesh = new InstancedMesh(geometry, null, this.icount);
 
     // Instanced Meshを配置する座標生成
     const allPositions = []; // すべての画像の座標配列
@@ -152,12 +132,29 @@ export default class InitParticle {
     });
     this.allPositions = allPositions;
 
-    // シーンに追加
-    this.three.scene.add(mesh);
+    this.material = new ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        uUvScale: new Uniform(uvScale),
+        uTextureFrom: new Uniform(this.images[this.imageIndex]),
+        uTextureTo: new Uniform(this.images[(this.imageIndex + 1) % this.images.length]),
+        uProgress: new Uniform(0),
+        uHalfHeight: new Uniform(window.innerHeight * .5),
+        uHalfWidth: new Uniform(window.innerWidth * .5),
+        uMouse: new Uniform(new Vector2(0, 0)),
+      },
+      transparent: true,
+      side: DoubleSide,
+    });
+
+    mesh.material = this.material; // マテリアル適用
     this.imesh = mesh;
 
-    this.applyTransition(0, 1, 0, true);
+    this.three.scene.add(mesh); // シーンに追加
+
     this.mouseAction();
+    this.countUpIndex();
   }
 
   mouseAction() {
@@ -167,7 +164,21 @@ export default class InitParticle {
     });
   }
 
+  countUpIndex() {
+    const from = this.imageIndex;
+    const to = (this.imageIndex + 1) % this.images.length;
+    this.applyTransition(from, to);
+    this.gsapTimer = gsap.delayedCall(this.intervalTime, () => {
+      this.countUpIndex();
+    });
+  }
+
   resize() {
+    if (this.gsapTimer) {
+      this.gsapTimer.kill();
+      this.gsapTimer = null;
+    }
+
     // 旧インスタンスを削除（Instanced Meshは都度初期化が必須）
     if (this.imesh) {
       this.three.scene.remove(this.imesh);
@@ -176,13 +187,11 @@ export default class InitParticle {
       this.imesh = null;
     }
 
-    // 再生成
     this.init(this.images);
   }
 
-  applyTransition(fromIndex, toIndex, intervalTime, skipAnimation = false) {
-    // リセット
-    this.material.uniforms.uProgress.value = 0; // 進行度
+  applyTransition(fromIndex, toIndex) {
+    this.material.uniforms.uProgress.value = 0; // 進行度リセット
 
     // フェードの設定
     this.material.uniforms.uTextureFrom.value = this.images[fromIndex];
@@ -197,29 +206,16 @@ export default class InitParticle {
       new InstancedBufferAttribute(this.allPositions[toIndex], 3)
     );
 
-    // init直後はtransitionしない
-    if (skipAnimation) {
-      this.material.uniforms.uProgress.value = 0;
-      this.imageIndex = toIndex; // 初期化時にもインデックス更新
-      return;
-    }
-
-    // トランジション座標の更新
-    const positionsFrom = this.allPositions[fromIndex];
-    const positionsTo = this.allPositions[toIndex];
-    const angleMax = Math.PI * 2; // 最大ねじれ角度（360度）
-
     gsap.fromTo(
       this.material.uniforms.uProgress,
       { value: 0 },
       {
         value: 1,
-        duration: intervalTime / 1000,
+        duration: this.intervalTime,
         ease: "power4.inOut",
         onComplete: () => {
-          // フェードの設定
           this.material.uniforms.uTextureFrom.value = this.images[toIndex];
-          this.imageIndex = toIndex; // 完了時に次の画像インデックスを保持
+          this.imageIndex = toIndex;
         }
       }
     );
