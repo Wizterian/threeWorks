@@ -1,3 +1,4 @@
+// ver.1 cover fit
 import {
   Scene,
   PerspectiveCamera,
@@ -23,7 +24,7 @@ export default class ThreeScene {
     this.width = window.innerWidth
     this.height = window.innerHeight
     this.pixelRatio = Math.min(window.devicePixelRatio, 2)
-    this.viewWidth = 1280
+    this.viewWidth = 512
     this.cameraParam = {
       fov: 45,
       near: 0.1,
@@ -38,8 +39,6 @@ export default class ThreeScene {
     this.renderer = null
     this.stats = null
     this.isInitialized = false
-
-    this.shortEdge = Math.min(window.innerWidth, window.innerHeight);
   }
 
   init () {
@@ -119,7 +118,6 @@ export default class ThreeScene {
 
   resize() {
     this._setCamera()
-    this.shortEdge = Math.min(this.width, this.height);
   }
 
   animate() {

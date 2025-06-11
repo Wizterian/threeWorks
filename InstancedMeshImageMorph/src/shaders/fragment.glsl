@@ -1,4 +1,4 @@
-
+// ver.1 cover fit
 uniform sampler2D uTextureFrom;
 uniform sampler2D uTextureTo;
 uniform float uProgress;

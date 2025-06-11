@@ -1,7 +1,7 @@
+// ver.1 cover fit
 uniform vec2 uUvScale;
 uniform float uProgress;
 uniform vec2 uMouse; // Tilt
-// uniform vec3 uImageCenter; // Tilt
 uniform float uHalfHeight;
 uniform float uHalfWidth;
 

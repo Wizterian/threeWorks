@@ -1,3 +1,4 @@
+// ver.1 cover fit
 import {
   PlaneGeometry,
   ShaderMaterial,
@@ -40,41 +41,31 @@ export default class InitParticle {
      * Canvasのフィット
      */
 
-    // 画像とウィンドウのアスペクト比を求める
     const texAspect = images[0].image.width / images[0].image.height;
-    const screenAspect = window.innerWidth / window.innerHeight;
 
-    // CSSのContainと同様の挙動
-    let width, height;
-    if (screenAspect > texAspect) { // ウィンドウが横長な場合
-      height = this.three.shortEdge; // 高さを基準にする
-      width = height * texAspect;
+    // カメラのFOVとZ位置から縦方向のworld空間での高さを計算
+    const halfFovRad = (this.three.camera.fov * Math.PI) / 180 / 2;
+    const visibleHeight = 2 * Math.tan(halfFovRad) * this.three.camera.position.z;
 
-      // // 横長 → 横をfitさせる → 縦は見切れる
-      // width = window.innerWidth;
-      // height = width / texAspect;
-    } else { // ウィンドウが縦長な場合
-      width = this.three.shortEdge; // 画像の横を基準にする
-      height = width / texAspect;
-
-      // // 縦長 → 縦をfitさせる → 横は見切れる
-      // height = window.innerHeight;
-      // width = height * texAspect;
-    }
+    // CSSのCoverと同様の挙動：縦にfit、横は見切れてOK
+    const height = visibleHeight;
+    const width = height * texAspect;
 
     /**************************
      * パーティクル（タイル）設定
      */
 
     // サイズ、分割数、UVのスケールを設定
-    const size = 5; // 一辺のサイズ
-    const nx = Math.floor(width / size); // 横の分割数
-    const ny = Math.floor(height / size); // 縦の分割数
+    const targetTilesY = 200; // タイル分割数
+    const size = visibleHeight / targetTilesY; // 縦方向にfit
+
+    const nx = Math.ceil(width / size); // 横の分割数
+    const ny = Math.ceil(height / size); // 縦の分割数
     this.icount = nx * ny; // 全分割数
 
     // 分割に合わせて画像サイズをスケーリング
     const uvScale = new Vector2(1 / nx, 1 / ny);
-      // uvの理解（https://chatgpt.com/share/682ad72e-1db0-8010-b2c1-66063b09be3c）
+    // uvの理解（https://chatgpt.com/share/682ad72e-1db0-8010-b2c1-66063b09be3c）
 
     // パーティクル（タイル）の位置に合わせてオフセット
     const uvOffsets = new Float32Array(this.icount * 2);
@@ -105,10 +96,24 @@ export default class InitParticle {
 
       const position = new Float32Array(this.icount * 3); // 個別の画像の座標配列
 
-      let offsetX = 0; // 左右に配置
+      // cover fit した plane の幅 (width) はすでに計算済み
+      const width = height * texAspect; // cover fit 挙動に基づいた plane 幅（world unit）
+
+      // cover fit に使っている画像のピクセル幅
+      const textureWidthPx = images[imageIndex].image.width;
+
+      // ピクセル → world unit 換算 (画像基準)
+      const pixelToWorldUnit = width / textureWidthPx;
+
+      // デザイナー指定ピクセル（画像基準でのオフセット）
+      const designerOffsetX_px = 300;
+      const offsetX_world = designerOffsetX_px * pixelToWorldUnit;
+
+      // imageIndex に応じた配置
+      let offsetX = 0;
       const mod = imageIndex % 3;
-      if (mod === 1) offsetX = +300;
-      else if (mod === 2) offsetX = -300;
+      if (mod === 1) offsetX = +offsetX_world;
+      else if (mod === 2) offsetX = -offsetX_world;
 
       let index = 0;
       for (let i = 0; i < nx; i++) {
