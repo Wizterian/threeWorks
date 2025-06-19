@@ -1,4 +1,4 @@
-// ver.1 cover fit
+// ver.2 scrollTrigger
 import {
   Scene,
   PerspectiveCamera,

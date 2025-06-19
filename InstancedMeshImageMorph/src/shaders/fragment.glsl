@@ -1,4 +1,4 @@
-// ver.1 cover fit
+// ver.2 scrollTrigger
 uniform sampler2D uTextureFrom;
 uniform sampler2D uTextureTo;
 uniform float uProgress;
@@ -26,6 +26,7 @@ void main() {
         mix(fromRGB, toRGB, fadeProgress), // RGB
         mix(fromColor.a, toColor.a, fadeProgress) // Alpha
     );
+    if (color.a < 0.01) discard;
 
     // // 分割線
     // float lineWidth = 0.1;

@@ -1,4 +1,4 @@
-// ver.1 cover fit
+// ver.2 scrollTrigger
 uniform vec2 uUvScale;
 uniform float uProgress;
 uniform vec2 uMouse; // Tilt
@@ -93,9 +93,6 @@ void main() {
     vec3 tilted = tiltRotY * (tiltRotX * centered);
 
     vec3 worldPosition = tilted + position; // 最終ワールド座標
-
-
-    // vec3 worldPosition = twistedPosition + position; // position（planeの相対座標）+ 回転・遷移中のワールド（絶対）座標
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
 }

@@ -1,4 +1,4 @@
-// ver.1 cover fit
+// ver.2 scrollTrigger
 import {
   PlaneGeometry,
   ShaderMaterial,
@@ -31,7 +31,7 @@ export default class InitParticle {
     // for transition
     this.imageIndex = 0;
     this.intervalTime = 3;
-    this.gsapTimer = null;
+    this.scrollTrigger = null;
   }
 
   init(images) {
@@ -155,11 +155,14 @@ export default class InitParticle {
 
     mesh.material = this.material; // マテリアル適用
     this.imesh = mesh;
-
     this.three.scene.add(mesh); // シーンに追加
 
     this.mouseAction();
-    this.countUpIndex();
+    // this.countUpIndex();
+
+    this.setScrollTrigger(); // ★ ScrollTrigger を追加
+
+    this.updateTextures(0, 1);
   }
 
   mouseAction() {
@@ -169,21 +172,7 @@ export default class InitParticle {
     });
   }
 
-  countUpIndex() {
-    const from = this.imageIndex;
-    const to = (this.imageIndex + 1) % this.images.length;
-    this.applyTransition(from, to);
-    this.gsapTimer = gsap.delayedCall(this.intervalTime, () => {
-      this.countUpIndex();
-    });
-  }
-
   resize() {
-    if (this.gsapTimer) {
-      this.gsapTimer.kill();
-      this.gsapTimer = null;
-    }
-
     // 旧インスタンスを削除（Instanced Meshは都度初期化が必須）
     if (this.imesh) {
       this.three.scene.remove(this.imesh);
@@ -192,15 +181,60 @@ export default class InitParticle {
       this.imesh = null;
     }
 
+    if (this.scrollTriggers) {
+      this.scrollTriggers.forEach(t => t.kill());
+      this.scrollTriggers = [];
+    }
+
     this.init(this.images);
   }
 
-  applyTransition(fromIndex, toIndex) {
-    this.material.uniforms.uProgress.value = 0; // 進行度リセット
+  setScrollTrigger() {
+    // ScrollTrigger 再設定時の cleanup
+    if (this.scrollTriggers) this.scrollTriggers.forEach(t => t.kill())
+    this.scrollTriggers = [];
 
-    // フェードの設定
+    const sections = document.querySelectorAll('.section');
+    const maxIndex = this.images.length - 1;
+    this.imageIndex = 0;
+    let fromIndex = 0;
+    let toIndex = 1;
+
+    sections.forEach((section, index) => {
+      const trigger = ScrollTrigger.create({
+        trigger: section,
+        start: 'top+=5% top',
+        end: 'bottom-=5% top',
+        scrub: true,
+        onEnter: () => {
+          console.log("onEnter:", index);
+          fromIndex = index === maxIndex ? index - 1 : index;
+          toIndex = Math.min(index + 1, maxIndex);
+          this.updateTextures(fromIndex, toIndex);
+        },
+        onEnterBack: () => {
+          console.log("onEnterBack:", index);
+          if (index + 1 === maxIndex) return;
+          fromIndex = index;
+          toIndex = index === 0 ? index + 1 : index - 1;
+          this.updateTextures(fromIndex, toIndex);
+        },
+        onUpdate: (self) => {
+          this.material.uniforms.uProgress.value = self.progress;
+        },
+        markers: true,
+      });
+
+      this.scrollTriggers.push(trigger);
+    });
+  }
+
+  updateTextures(fromIndex, toIndex) {
+    this.imageIndex = fromIndex;
+    const nextIndex = toIndex;
+
     this.material.uniforms.uTextureFrom.value = this.images[fromIndex];
-    this.material.uniforms.uTextureTo.value = this.images[toIndex];
+    this.material.uniforms.uTextureTo.value = this.images[nextIndex];
 
     this.imesh.geometry.setAttribute(
       'aFromPosition',
@@ -208,21 +242,7 @@ export default class InitParticle {
     );
     this.imesh.geometry.setAttribute(
       'aToPosition',
-      new InstancedBufferAttribute(this.allPositions[toIndex], 3)
-    );
-
-    gsap.fromTo(
-      this.material.uniforms.uProgress,
-      { value: 0 },
-      {
-        value: 1,
-        duration: this.intervalTime,
-        ease: "power4.inOut",
-        onComplete: () => {
-          this.material.uniforms.uTextureFrom.value = this.images[toIndex];
-          this.imageIndex = toIndex;
-        }
-      }
+      new InstancedBufferAttribute(this.allPositions[nextIndex], 3)
     );
   }
 
