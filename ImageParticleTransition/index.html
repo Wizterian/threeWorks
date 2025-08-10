@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Three.js Scroll Image Transition</title>
+
+  <style>
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      box-sizing: border-box;
+      background: #000;
+    }
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+    section {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      border: 3px solid #fff;
+
+      /* font-family: "Roboto Condensed", sans-serif; */
+      font-family: "Roboto", sans-serif;
+      font-size: 4em;
+      color: #fff;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"> -->
+   <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<canvas id="webgl"></canvas>
+<section>Section 1</section>
+<section>Section 2</section>
+<section>Section 3</section>
+
+<!-- <script id="vertexShader" type="x-shader/x-vertex">
+  // vertex.glsl
+
+  attribute vec2 uvOffset;
+  attribute vec3 instanceOffset;
+
+  uniform float uProgress;
+  uniform float uHalfWidth;
+  uniform float uHalfHeight;
+  uniform vec2 uUvScale;
+
+  varying vec2 vUv;
+
+  void main() {
+    // UV scaling and offset
+    vUv = uv * uUvScale + uvOffset;
+
+    // Normalized X and Y
+    float dx = instanceOffset.x;
+    float dy = instanceOffset.y;
+    float normalizedX = (dx + uHalfWidth) / (2.0 * uHalfWidth);
+    float normalizedY = (dy + uHalfHeight) / (2.0 * uHalfHeight);
+
+    // Delay & Local Progress
+    float duration = 0.4;
+    float delay = (1.0 - duration) * ((1.0 - normalizedX) * 0.5 + (1.0 - normalizedY) * 0.5);
+    delay = clamp(delay, 0.0, 1.0 - duration);
+    float end = delay + duration;
+    float localProgress = smoothstep(delay, end, uProgress);
+
+    // Global twist rotation around Y-axis (page-turn style)
+    float angle = localProgress * radians(360.0);
+    mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+    vec2 rotated = rot * vec2(instanceOffset.x, instanceOffset.z);
+
+    vec3 worldPos = vec3(rotated.x, instanceOffset.y, rotated.y) + position;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPos, 1.0);
+  }
+</script> -->
+
+<!-- <script id="fragmentShader" type="x-shader/x-fragment">
+  varying vec2 vUv;
+
+  uniform sampler2D uTexture1;
+  uniform sampler2D uTexture2;
+  uniform float uProgress;
+  uniform vec2 uImageResolution;
+  uniform vec2 uResolution;
+
+  void main() {
+    // Cover fit scaling
+    vec2 ratio = vec2(
+      min((uResolution.x / uResolution.y) / (uImageResolution.x / uImageResolution.y), 1.0),
+      min((uResolution.y / uResolution.x) / (uImageResolution.y / uImageResolution.x), 1.0)
+    );
+    vec2 uv = vec2(
+      vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+      vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
+    );
+    vec4 tex1 = texture2D(uTexture1, uv);
+    vec4 tex2 = texture2D(uTexture2, uv);
+    vec4 color = mix(tex1, tex2, uProgress);
+
+    gl_FragColor = color;
+  }
+</script> -->
+<script type="module" src="transition.js"></script>
+
+</body>
+</html>
