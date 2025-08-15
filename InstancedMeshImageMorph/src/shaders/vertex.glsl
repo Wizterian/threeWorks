@@ -39,6 +39,7 @@ void main() {
     float localProgress = smoothstep(delay, end, uProgress); // make the range 0 to 1
 
     // --- Interpolation ---
+    // vec3 basePosition = mix(aFromPosition, aToPosition, localProgress); // interpolated base position (instanced center)
     vec3 basePosition = mix(aFromPosition, aToPosition, localProgress); // interpolated base position (instanced center)
 
     // --- 見た目のばらけ（ランダム揺らぎ） ---

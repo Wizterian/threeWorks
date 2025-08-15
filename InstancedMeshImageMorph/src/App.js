@@ -15,7 +15,7 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 import LoadImage from './js/common/LoadImage.js';
 // import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import gsap from 'gsap'
-// import Lenis from 'lenis'
+import Lenis from 'lenis'
 import InitParticle from './js/InitParticle.js';
 // gsap.registerPlugin(ScrollTrigger)
 
@@ -164,10 +164,10 @@ export default class ThreeScene {
     })
 
     // Animation
-    // const lenis = new Lenis()
+    const lenis = new Lenis()
     const animate = () => {
       window.requestAnimationFrame(time => {
-        // lenis.raf(time)
+        lenis.raf(time)
         // ScrollTrigger.update()
 
         threeScene.animate()
